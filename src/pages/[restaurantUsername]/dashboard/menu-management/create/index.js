@@ -68,7 +68,7 @@ export default function CreateMenuItemForm() {
       if (searchTerm.trim() !== "") {
         try {
           const res = await fetch(
-            `https://api.spoonacular.com/recipes/complexSearch?query=${searchTerm}&number=5&apiKey=${process.env.NEXT_PUBLIC_SPOONACULARE_API_KEY3}`,
+            `https://api.spoonacular.com/recipes/complexSearch?query=${searchTerm}&number=5&apiKey=${process.env.NEXT_PUBLIC_SPOONACULARE_API_KEY1}`,
           );
           const data = await res.json();
           setSuggestions(data.results);
@@ -273,7 +273,7 @@ export default function CreateMenuItemForm() {
       const URL = `https://api.spoonacular.com/recipes/${item.id}/information`;
 
       // Make a GET request to the Spoonacular API using the provided API key
-      const res = await fetch(`${URL}?apiKey=${process.env.NEXT_PUBLIC_SPOONACULARE_API_KEY3}`);
+      const res = await fetch(`${URL}?apiKey=${process.env.NEXT_PUBLIC_SPOONACULARE_API_KEY1}`);
 
       // Parse the JSON response
       const data = await res.json();
