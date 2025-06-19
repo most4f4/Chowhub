@@ -1,0 +1,81 @@
+.formWrapper {
+  background-color: #1e1e2f;
+  color: #ffffff;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.formWrapper label {
+  color: #bfbfbf;
+  font-weight: 500;
+}
+
+.ingredientLabel {
+  background-color: #2a2a3a !important;
+  color: #ffffff !important;
+}
+
+.ingredientLabel::placeholder {
+  color: #aaa; /* Change this to match your design */
+  opacity: 1; /* Ensure it's fully visible */
+}
+
+.formWrapper h6 {
+  margin-bottom: 0.75rem;
+  color: #a8e6cf;
+  font-size: 1rem;
+}
+
+.formWrapper input,
+.formWrapper textarea,
+.formWrapper select {
+  background-color: #2e2e3e;
+  border: 1px solid #444;
+  color: #fff;
+}
+
+.formWrapper input:focus,
+.formWrapper textarea:focus,
+.formWrapper select:focus {
+  border-color: #64ffda;
+  box-shadow: 0 0 0 0.2rem rgba(100, 255, 218, 0.25);
+}
+
+.formWrapper .form-check-label {
+  color: #bfbfbf;
+}
+
+.formWrapper button {
+  background-color: #036264;
+  color: #ffffff;
+  font-weight: 600;
+  border: none;
+}
+
+.formWrapper button:hover {
+  background-color: #51937b;
+}
+
+.placeholderInput::placeholder {
+  color: #aaa; /* Change this to match your design */
+  opacity: 1; /* Ensure it's fully visible */
+}
+
+.suggestionsList {
+  background-color: #2e2e3e;
+  color: #fff;
+  border: 1px solid #444;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.suggestionsListItem {
+  background-color: #2e2e3e;
+  color: #fff;
+  border-bottom: 1px solid #444;
+}
+
+.suggestionsListItem:hover {
+  background-color: #3e3e4e;
+}
