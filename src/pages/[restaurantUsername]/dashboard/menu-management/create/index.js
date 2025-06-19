@@ -213,7 +213,7 @@ export default function CreateMenuItemForm() {
       name: ing.name,
       unit: ing.unit,
       ingredientId: ing.ingredientId,
-      isChecked: false,
+      isChecked: ing.isChecked,
       track: false,
       quantityUsed: "",
       quantityOriginal: ing.quantityOriginal,
