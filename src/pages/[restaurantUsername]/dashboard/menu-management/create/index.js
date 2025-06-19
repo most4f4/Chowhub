@@ -215,8 +215,9 @@ export default function CreateMenuItemForm() {
       ingredientId: ing.ingredientId,
       isChecked: ing.isChecked,
       track: false,
-      quantityUsed: "",
+      quantityUsed: ing.quantityUsed,
       quantityOriginal: ing.quantityOriginal,
+      inventoryQuantity: ing.inventoryQuantity,
     }));
 
     const isInventoryControlled = checkInventoryControl(newVariations);
