@@ -128,7 +128,7 @@ export default function CreateIngredientForm() {
       if (searchTerm.trim() !== "") {
         try {
           const res = await fetch(
-            `https://api.spoonacular.com/food/ingredients/search?query=${searchTerm}&number=5&apiKey=${process.env.NEXT_PUBLIC_SPOONACULARE_API_KEY1}`,
+            `https://api.spoonacular.com/food/ingredients/search?query=${searchTerm}&number=5&apiKey=${process.env.NEXT_PUBLIC_SPOONACULARE_API_KEY}`,
           );
           const data = await res.json();
           setSuggestions(data.results);
