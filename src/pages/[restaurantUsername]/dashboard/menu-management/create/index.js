@@ -109,8 +109,12 @@ export default function CreateMenuItemForm() {
 
       // Only allow enabling tracking if the ingredient was confirmed via checkIngredients
       if (checked && !ing.ingredientId) {
-        toast.error("Please check ingredient before enabling tracking.");
-        ing.track = false;
+        // Try to fetch ingredient info again
+        await checkIngredients(vIndex, iIndex); // await it
+        if (!form.variations[vIndex].ingredients[iIndex].ingredientId) {
+          toast.error("Ingredient not found in inventory.");
+          ing.track = false;
+        }
       }
     } else if (field === "quantityUsed") {
       ing.quantityUsed = parseFloat(value) || 0;
