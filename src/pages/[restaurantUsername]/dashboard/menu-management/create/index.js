@@ -551,9 +551,9 @@ export default function CreateMenuItemForm() {
                       />
                     </Col>
 
-                    {ing.isChecked && (
-                      <>
-                        <Col>
+                    <>
+                      <Col>
+                        {ing.isChecked ? (
                           <Form.Control
                             type="text"
                             value={`→ ${ing.inventoryQuantity} / ${ing.unit || ""}`}
@@ -561,9 +561,11 @@ export default function CreateMenuItemForm() {
                             readOnly
                             className={styles.ingredientLabel}
                           />
-                        </Col>
+                        ) : null}
+                      </Col>
 
-                        <Col>
+                      <Col>
+                        {ing.isChecked ? (
                           <Form.Control
                             type="number"
                             className={styles.ingredientLabel}
@@ -573,9 +575,11 @@ export default function CreateMenuItemForm() {
                               handleIngredientChange(vIndex, iIndex, "quantityUsed", e.target.value)
                             }
                           />
-                        </Col>
+                        ) : null}
+                      </Col>
 
-                        <Col xs="auto">
+                      <Col xs="auto">
+                        {ing.isChecked ? (
                           <Form.Check
                             type="checkbox"
                             label="Track"
@@ -585,9 +589,9 @@ export default function CreateMenuItemForm() {
                               handleIngredientChange(vIndex, iIndex, "track", e.target.checked)
                             }
                           />
-                        </Col>
-                      </>
-                    )}
+                        ) : null}
+                      </Col>
+                    </>
 
                     <Col xs="auto">
                       <Button
