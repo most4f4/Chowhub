@@ -12,7 +12,7 @@ export default function AnalyticsBackButton({
 
   const handleBack = () => {
     if (customBackPath) {
-      router.push(customBackPath);
+      router.push(`/${restaurantUsername}/dashboard/${customBackPath}`);
     } else {
       router.push(`/${restaurantUsername}/dashboard/sales-analytics`);
     }

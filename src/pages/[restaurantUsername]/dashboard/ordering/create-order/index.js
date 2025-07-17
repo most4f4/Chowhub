@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Button, Col, Container, Form, Image, Modal, Row, Spinner } from "react-bootstrap";
 import { toast } from "react-toastify";
 import Style from "./createOrder.module.css";
+import AnalyticsBackButton from "@/components/AnalyticsBackButton";
 
 export default function CreateOrder() {
   const [cartItems, setCartItems] = useState([]);
@@ -288,6 +289,9 @@ export default function CreateOrder() {
         >
           {/* Header with refresh button */}
           <div className="d-flex justify-content-between align-items-center mb-3">
+            <div style={{ marginBottom: "2rem" }}>
+              <AnalyticsBackButton buttonText="Back to ordering" customBackPath="ordering" />
+            </div>
             <h1 style={{ color: "#CCC", margin: 0 }}>Menu</h1>
             <Button
               variant="outline-secondary"

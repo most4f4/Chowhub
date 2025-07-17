@@ -2,10 +2,18 @@ import React, { useEffect, useState, useRef } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { apiFetch } from "@/lib/api";
 import { toast } from "react-toastify";
-import { FaTimes, FaCheck, FaThumbtack, FaClipboardList, FaArrowLeft, FaArrowRight } from "react-icons/fa";
+import {
+  FaTimes,
+  FaCheck,
+  FaThumbtack,
+  FaClipboardList,
+  FaArrowLeft,
+  FaArrowRight,
+} from "react-icons/fa";
 import { Modal, Button } from "react-bootstrap";
 import Style from "../menu-management/menuManage.module.css";
 import Head from "next/head";
+import AnalyticsBackButton from "@/components/AnalyticsBackButton";
 
 function timeSince(date) {
   const seconds = Math.floor((new Date() - new Date(date)) / 1000);
@@ -106,6 +114,9 @@ export default function ActiveOrdersPage() {
       </Head>
 
       <div style={{ padding: "1rem", minWidth: "0" }}>
+        <div style={{ marginBottom: "2rem" }}>
+          <AnalyticsBackButton buttonText="Back to ordering" customBackPath="ordering" />
+        </div>
         <h1 style={{ color: "#FFF", marginBottom: "1.5rem" }}>📋 Active Orders</h1>
 
         <div style={{ position: "relative", width: "100%", overflow: "hidden" }}>
@@ -193,10 +204,22 @@ export default function ActiveOrdersPage() {
 
                     <div style={{ fontSize: "1.1rem", lineHeight: 1.7 }}>
                       {order.orderLineItems.map((item, idx) => (
-                        <div key={idx} style={{ marginBottom: "2px", display: "flex", justifyContent: "space-between", gap: "1rem" }}>
+                        <div
+                          key={idx}
+                          style={{
+                            marginBottom: "2px",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: "1rem",
+                          }}
+                        >
                           <span>
                             • {item.quantity} x {item.name}{" "}
-                            {item.variationName && <em style={{ fontWeight: 400, opacity: 0.8 }}>({item.variationName})</em>}
+                            {item.variationName && (
+                              <em style={{ fontWeight: 400, opacity: 0.8 }}>
+                                ({item.variationName})
+                              </em>
+                            )}
                           </span>
                           <span>${item.subTotal.toFixed(2)}</span>
                         </div>
