@@ -10,7 +10,9 @@ export default function DashboardHeader() {
     <>
       <Navbar data-bs-theme="dark">
         <Container>
-          <Navbar.Brand>{user?.restaurantUsername || "Restaurant Name"}</Navbar.Brand>
+          <Navbar.Brand style={{ paddingLeft: "2rem" }}>
+            {user?.restaurantUsername || "Restaurant Name"}
+          </Navbar.Brand>
         </Container>
         <Container className="justify-content-end">
           <Nav className="gap-3 align-items-center">

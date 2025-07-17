@@ -1,0 +1,25 @@
+html,
+body {
+  background-color: #121212 !important;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  color: #ffffff;
+}
+
+/* Prevent white flash during page transitions */
+#__next {
+  background-color: #121212;
+  min-height: 100vh;
+}
+
+/* Hide content until fully loaded */
+.page-loading {
+  visibility: hidden;
+}
+
+.page-loaded {
+  visibility: visible;
+}

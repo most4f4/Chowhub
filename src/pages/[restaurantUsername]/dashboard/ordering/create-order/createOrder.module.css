@@ -1,0 +1,25 @@
+.darkModal {
+  background-color: #2a2a3a !important;
+  color: #ccc !important;
+ /* border: 1px solid #666 !important;  */
+}
+
+.modal-content.darkModal .modal-header{
+  background-color: #2a2a3a !important;
+  color: #ccc !important;
+  border-bottom: 1px solid #666  !important;
+  
+}
+
+.darkModalBody {
+  background-color: #2a2a3a !important;
+  color: #ccc !important;
+  /* border-top: 1px solid #666  !important;  */
+    /* border:none !important; */
+}
+
+.darkModalFooter {
+  background-color: #2a2a3a !important;
+  /* border-top: 1px solid #666  !important; */
+    /* border:none !important; */
+}

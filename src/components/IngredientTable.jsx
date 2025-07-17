@@ -79,10 +79,10 @@ export default function IngredientTable({ ingredients, onEdit, onDelete }) {
             const backgroundColor = isCritical
               ? "rgba(229, 57, 53, 0.2)" // Red for critical stock
               : isNearingThreshold
-                ? "rgba(255, 165, 0, 0.2)" // Light orange for nearing threshold
-                : isEven
-                  ? "transparent"
-                  : "rgba(255,255,255,0.03)";
+              ? "rgba(255, 165, 0, 0.2)" // Light orange for nearing threshold
+              : isEven
+              ? "transparent"
+              : "rgba(255,255,255,0.03)";
 
             return (
               <tr
@@ -95,7 +95,9 @@ export default function IngredientTable({ ingredients, onEdit, onDelete }) {
                 onMouseEnter={(e) =>
                   (e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.08)")
                 }
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = backgroundColor)}
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.backgroundColor = backgroundColor)
+                }
               >
                 {columns.map((col) => {
                   const cell = row[col.accessor];

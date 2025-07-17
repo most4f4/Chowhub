@@ -61,7 +61,7 @@ export default function UserManagementPage() {
   return (
     <DashboardLayout>
       <ManagerOnly>
-        <h1>User Management</h1>
+        <h1>👥 User Management</h1>
 
         {loading ? (
           <p>Loading users…</p>

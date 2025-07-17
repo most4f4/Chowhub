@@ -23,7 +23,7 @@ export default function NotificationBell(){
           if(!res){
             console.log("Error fetching notifications RES: ", {res});
           }
-          console.log(res.notifications);
+          // console.log(res.notifications);
           setNotifications(res.notifications);
       }catch(err){ console.log(err);}
       finally{

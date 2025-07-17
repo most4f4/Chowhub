@@ -11,6 +11,13 @@ export default function NotificationPopSmall({from, message, seen, timestamp, ty
           </Badge>
         </div>;
     }
+    else if(type =='low-stock'){
+      typeBadge = <div className="mt-1">
+          <Badge bg="warning" pill>
+            {type}
+          </Badge>
+        </div>;
+    }
     else{
         typeBadge = <div className="mt-1">
           <Badge bg="secondary" pill>

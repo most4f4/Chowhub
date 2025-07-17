@@ -109,12 +109,8 @@ export default function CreateMenuItemForm() {
 
       // Only allow enabling tracking if the ingredient was confirmed via checkIngredients
       if (checked && !ing.ingredientId) {
-        // Try to fetch ingredient info again
-        await checkIngredients(vIndex, iIndex); // await it
-        if (!form.variations[vIndex].ingredients[iIndex].ingredientId) {
-          toast.error("Ingredient not found in inventory.");
-          ing.track = false;
-        }
+        toast.error("Please check ingredient before enabling tracking.");
+        ing.track = false;
       }
     } else if (field === "quantityUsed") {
       ing.quantityUsed = parseFloat(value) || 0;
@@ -217,11 +213,10 @@ export default function CreateMenuItemForm() {
       name: ing.name,
       unit: ing.unit,
       ingredientId: ing.ingredientId,
-      isChecked: ing.isChecked,
+      isChecked: false,
       track: false,
-      quantityUsed: ing.quantityUsed,
+      quantityUsed: "",
       quantityOriginal: ing.quantityOriginal,
-      inventoryQuantity: ing.inventoryQuantity,
     }));
 
     const isInventoryControlled = checkInventoryControl(newVariations);
@@ -551,9 +546,9 @@ export default function CreateMenuItemForm() {
                       />
                     </Col>
 
-                    <>
-                      <Col>
-                        {ing.isChecked ? (
+                    {ing.isChecked && (
+                      <>
+                        <Col>
                           <Form.Control
                             type="text"
                             value={`→ ${ing.inventoryQuantity} / ${ing.unit || ""}`}
@@ -561,11 +556,9 @@ export default function CreateMenuItemForm() {
                             readOnly
                             className={styles.ingredientLabel}
                           />
-                        ) : null}
-                      </Col>
+                        </Col>
 
-                      <Col>
-                        {ing.isChecked ? (
+                        <Col>
                           <Form.Control
                             type="number"
                             className={styles.ingredientLabel}
@@ -575,11 +568,9 @@ export default function CreateMenuItemForm() {
                               handleIngredientChange(vIndex, iIndex, "quantityUsed", e.target.value)
                             }
                           />
-                        ) : null}
-                      </Col>
+                        </Col>
 
-                      <Col xs="auto">
-                        {ing.isChecked ? (
+                        <Col xs="auto">
                           <Form.Check
                             type="checkbox"
                             label="Track"
@@ -589,9 +580,9 @@ export default function CreateMenuItemForm() {
                               handleIngredientChange(vIndex, iIndex, "track", e.target.checked)
                             }
                           />
-                        ) : null}
-                      </Col>
-                    </>
+                        </Col>
+                      </>
+                    )}
 
                     <Col xs="auto">
                       <Button
