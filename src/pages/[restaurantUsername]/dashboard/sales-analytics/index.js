@@ -223,7 +223,7 @@ export default function AnalyticsDashboard() {
                 lineHeight: "1.6",
               }}
             >
-              Comprehensive insights into your restaurant's performance. Choose an analytics
+              Comprehensive insights into your restaurant&apos;s performance. Choose an analytics
               category to dive into detailed reports and metrics.
             </p>
           </div>
