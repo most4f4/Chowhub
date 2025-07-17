@@ -19,7 +19,7 @@ export default function CreateOrder() {
   const [groupedMenuItems, setGroupedMenuItems] = useState({});
   const [ingredients, setIngredients] = useState({});
   const taxRate = 0.13;
-  const [submittingOrder, setSubmittingOrder] = useState(false); // New state for order submission
+  const [submittingOrder, setSubmittingOrder] = useState(false);
 
   // Extract menu fetching logic into a separate function
   async function fetchMenuData() {
@@ -74,10 +74,9 @@ export default function CreateOrder() {
     const filtered = menuItems.filter((item) => item.category === categoryId);
     setSelectedMenuItems(filtered);
     console.log(selectedMenuItems);
-    // setChoosenCategory;
-
     setLoading(false);
   }
+
   function goBack() {
     setChoosenCategory(null);
     setSelectedMenuItems(null);
@@ -85,26 +84,23 @@ export default function CreateOrder() {
 
   function viewSpecificItem(itemId) {
     const item = menuItems.find((item) => item._id === itemId);
-    // const item = selectedMenuItems.find((item) => item._id === itemId);
     setDetailViewMenuItem(item);
     console.log(item);
   }
+
   function addItemToCart() {
     setCartItems((arr) => {
-      // Add new item to array
       const newCart = [
         ...arr,
         { item: detailViewMenuItem, variant: selectedVariantId, quantity: quantiy },
       ];
-
-      // Merge duplicates
       return mergeExistingItems(newCart);
     });
 
     console.log(cartItems);
     setDetailViewMenuItem(null);
     setQuantity(1);
-    setSelectedVariantId(null); // Reset selected variant
+    setSelectedVariantId(null);
   }
 
   function mergeExistingItems(items) {
@@ -124,12 +120,13 @@ export default function CreateOrder() {
 
     return merged;
   }
+
   function removeItemFromCart(index) {
     setCartItems((prev) => prev.filter((_, i) => i !== index));
   }
 
   async function submitOrder(cartItems) {
-    setSubmittingOrder(true); // Start loading state
+    setSubmittingOrder(true);
 
     const orderLineItems = cartItems.map((entry) => {
       const variant = entry.item.variations.find((v) => v._id === entry.variant);
@@ -149,6 +146,7 @@ export default function CreateOrder() {
     const subtotal = orderLineItems.reduce((acc, item) => acc + item.subTotal, 0);
     const tax = subtotal * taxRate;
     const total = subtotal + tax;
+
     try {
       const res = await apiFetch("/order/create-order", {
         method: "POST",
@@ -163,22 +161,27 @@ export default function CreateOrder() {
           comment,
         }),
       });
+
       if (res.error) {
-        console.error("Failed to submit order:", error);
-        return;
+        console.error("Failed to submit order:", res.error);
+        toast.error("Failed to submit order: " + res.error);
+        return; // This was the problem - return without finally block!
       }
+
       toast.success(`✅ Order has been successfully placed`);
-      //clear data
       setCartItems([]);
       setComment("");
 
-      // OPTION 1: Refresh menu data to reflect updated inventory/availability
       console.log("Refreshing menu data after order submission...");
       await fetchMenuData();
 
       console.log("Order submitted successfully:", res);
     } catch (err) {
-      console.log(err);
+      console.error("Error submitting order:", err);
+      toast.error("An error occurred while submitting the order");
+    } finally {
+      // FIXED: This finally block ensures setSubmittingOrder(false) ALWAYS runs
+      setSubmittingOrder(false);
     }
   }
 
@@ -186,128 +189,161 @@ export default function CreateOrder() {
     <>
       {/* Detail view of the item */}
       {detailViewMenuItem ? (
-        <div style={{}}>
-          <Modal
-            show={detailViewMenuItem !== null}
-            onHide={() => setDetailViewMenuItem(null)}
-            centered
-            contentClassName={Style.darkModal}
-            size="xl"
-          >
-            <Modal.Header contentClassName={Style.darkModalHeader}>
-              <Modal.Title>{detailViewMenuItem?.name}</Modal.Title>
-            </Modal.Header>
-            <Modal.Body contentClassName={Style.darkModalBody}>
-              <div className="text-center mb-3">
-                <Image src={detailViewMenuItem?.image} thumbnail></Image>
-              </div>
-              <p>{detailViewMenuItem?.description}</p>
-              <strong>Quantity:</strong>
-              <input
-                type="number"
-                min="1"
-                className="form-control w-25"
-                value={quantiy}
-                onChange={(e) => setQuantity(Number(e.target.value))}
-              />
+        <Modal
+          show={detailViewMenuItem !== null}
+          onHide={() => {
+            setDetailViewMenuItem(null);
+            setSelectedVariantId(null);
+          }}
+          centered
+          contentClassName={Style.darkModal}
+          size="xl"
+        >
+          <Modal.Header contentClassName={Style.darkModalHeader}>
+            <Modal.Title>{detailViewMenuItem?.name}</Modal.Title>
+          </Modal.Header>
+          <Modal.Body contentClassName={Style.darkModalBody}>
+            <div className="text-center mb-3">
+              <Image src={detailViewMenuItem?.image} thumbnail></Image>
+            </div>
+            <p>{detailViewMenuItem?.description}</p>
+            <strong>Quantity:</strong>
+            <input
+              type="number"
+              min="1"
+              className="form-control w-25"
+              value={quantiy}
+              onChange={(e) => setQuantity(Number(e.target.value))}
+            />
 
-              <strong>Choose a variant:</strong>
-              {detailViewMenuItem?.variations?.map((variant) => (
-                <div className="form-check" key={variant._id}>
-                  <input
-                    className="form-check-input"
-                    type="radio"
-                    name="variant"
-                    id={`variant-${variant._id}`}
-                    value={variant._id}
-                    checked={selectedVariantId === variant._id}
-                    disabled={variant.isAvailable === false}
-                    onChange={() => setSelectedVariantId(variant._id)}
-                  />
-                  <label className="form-check-label" htmlFor={`variant-${variant._id}`}>
-                    {variant.name} — ${variant.price}
-                    {!variant.isAvailable && (
-                      <span
-                        style={{
-                          color: "#f88",
-                          marginLeft: "0.5rem",
-                          fontWeight: "normal",
-                          fontSize: "0.9rem",
-                        }}
-                      >
-                        (Out of stock)
-                      </span>
-                    )}
-                  </label>
-                  <div style={{ fontSize: "0.85rem", color: "#AAA", marginLeft: "1.8rem" }}>
-                    Ingredients:{" "}
-                    {variant.ingredients && variant.ingredients.length > 0
-                      ? variant.ingredients.map((ing) => ing.name).join(", ")
-                      : "No ingredients listed"}
-                  </div>
-                </div>
-              ))}
-
-              {/* <p>
-                <strong>Price:</strong> ${detailViewMenuItem?.price}
-              </p> */}
-            </Modal.Body>
-            <Modal.Footer contentClassName={Style.darkModalFooter}>
-              <Button variant="secondary" onClick={() => setDetailViewMenuItem(null)}>
-                Close
-              </Button>
-              <Button
-                variant="primary"
-                disabled={!selectedVariantId}
-                onClick={() => {
-                  addItemToCart();
-                }}
-              >
-                Add to Cart
-              </Button>
-            </Modal.Footer>
-          </Modal>
-        </div>
-      ) : null}
-      <DashboardLayout>
-        <Container fluid>
-          {/* Menu */}
-          <Row>
-            <Col>
-              <h1>Menu</h1>
-              {/* <div style={{ minHeight: "72px" }}>
-                {choosenCategory != null && (
-                  <>
-                    <Button
+            <strong>Choose a variant:</strong>
+            {detailViewMenuItem?.variations?.map((variant) => (
+              <div className="form-check" key={variant._id}>
+                <input
+                  className="form-check-input"
+                  type="radio"
+                  name="variant"
+                  id={`variant-${variant._id}`}
+                  value={variant._id}
+                  checked={selectedVariantId === variant._id}
+                  disabled={variant.isAvailable === false}
+                  onChange={() => setSelectedVariantId(variant._id)}
+                />
+                <label className="form-check-label" htmlFor={`variant-${variant._id}`}>
+                  {variant.name} — ${variant.price}
+                  {!variant.isAvailable && (
+                    <span
                       style={{
-                        background: "#2A2A3A",
-                        borderColor: "#2A2A3A",
-                        color: "#CCC",
+                        color: "#f88",
+                        marginLeft: "0.5rem",
+                        fontWeight: "normal",
+                        fontSize: "0.9rem",
                       }}
-                      size="lg"
-                      onClick={() => goBack()}
                     >
-                      Back
-                    </Button>
-                    <br />
-                    <br />
-                  </>
-                )} */}
-              {/* </div> */}
-              {/* category item display */}
+                      (Out of stock)
+                    </span>
+                  )}
+                </label>
+                <div style={{ fontSize: "0.85rem", color: "#AAA", marginLeft: "1.8rem" }}>
+                  Ingredients:{" "}
+                  {variant.ingredients && variant.ingredients.length > 0
+                    ? variant.ingredients.map((ing) => ing.name).join(", ")
+                    : "No ingredients listed"}
+                </div>
+              </div>
+            ))}
+          </Modal.Body>
+          <Modal.Footer contentClassName={Style.darkModalFooter}>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setDetailViewMenuItem(null);
+                setSelectedVariantId(null);
+              }}
+            >
+              Close
+            </Button>
+            <Button
+              variant="primary"
+              disabled={!selectedVariantId}
+              onClick={() => {
+                addItemToCart();
+              }}
+            >
+              Add to Cart
+            </Button>
+          </Modal.Footer>
+        </Modal>
+      ) : null}
 
+      <DashboardLayout>
+        {/* FIXED: Use proper Container with responsive padding */}
+        <div
+          style={{
+            width: "100%",
+            maxWidth: "none",
+            padding: "0",
+            margin: "0",
+          }}
+        >
+          {/* Header with refresh button */}
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <h1 style={{ color: "#CCC", margin: 0 }}>Menu</h1>
+            <Button
+              variant="outline-secondary"
+              onClick={fetchMenuData}
+              disabled={loading}
+              size="sm"
+            >
               {loading ? (
-                <Spinner animation="border" />
+                <>
+                  <Spinner animation="border" size="sm" className="me-2" />
+                  Refreshing...
+                </>
+              ) : (
+                "🔄 Refresh Menu"
+              )}
+            </Button>
+          </div>
+
+          {/* FIXED: Use flexbox layout instead of Bootstrap grid */}
+          <div
+            style={{
+              display: "flex",
+              gap: "1.5rem",
+              height: "calc(100vh - 140px)", // Adjust based on your header height
+              overflow: "hidden",
+            }}
+          >
+            {/* Menu Section - Left Side */}
+            <div
+              style={{
+                flex: "1",
+                overflowY: "auto",
+                paddingRight: "1rem",
+              }}
+            >
+              {loading ? (
+                <div className="text-center">
+                  <Spinner animation="border" />
+                  <p className="mt-2" style={{ color: "#CCC" }}>
+                    Loading menu items...
+                  </p>
+                </div>
               ) : (
                 <div className="d-flex flex-column gap-4">
                   {categories.map((cat) => (
                     <div key={cat._id}>
-                      <b>
-                        <h2 className="text-center" style={{ color: "#CCC" }}>
-                          {cat.name}
-                        </h2>
-                      </b>
-                      <div className="d-flex flex-wrap gap-2">
+                      <h2 className="text-center mb-3" style={{ color: "#CCC" }}>
+                        {cat.name}
+                      </h2>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+                          gap: "1rem",
+                        }}
+                      >
                         {groupedMenuItems[cat._id]?.map((item) => (
                           <div
                             key={item._id}
@@ -316,20 +352,21 @@ export default function CreateOrder() {
                               background: item.isDisabled ? "#444" : "#2A2A3A",
                               border: "1px solid #444",
                               color: item.isDisabled ? "#888" : "#CCC",
-                              flex: "1 1 250px",
                               padding: "1rem",
                               borderRadius: "0.5rem",
                               cursor: item.isDisabled ? "not-allowed" : "pointer",
                               textAlign: "left",
                               display: "flex",
                               flexDirection: "column",
-                              alignItems: "start",
                               gap: "0.5rem",
-                              width: "33%",
-                              minWidth: "100px",
-                              maxWidth: "300px",
                               opacity: item.isDisabled ? 0.5 : 1,
                               pointerEvents: item.isDisabled ? "none" : "auto",
+                              transition: "all 0.3s ease",
+                              ":hover": !item.isDisabled
+                                ? {
+                                    background: "#3A3A4A",
+                                  }
+                                : {},
                             }}
                           >
                             <img
@@ -338,8 +375,7 @@ export default function CreateOrder() {
                               style={{
                                 borderRadius: "0.5rem",
                                 width: "100%",
-                                height: "auto",
-                                aspectRatio: "4 / 3",
+                                height: "180px",
                                 objectFit: "cover",
                               }}
                             />
@@ -380,37 +416,56 @@ export default function CreateOrder() {
                   ))}
                 </div>
               )}
-            </Col>
-            {/* </Row> */}
-            {/* Cart */}
-            {/* <Row> */}
-            <Col md={4}>
+            </div>
+
+            {/* Cart Section - Right Side (Fixed Width) */}
+            <div
+              style={{
+                width: "350px",
+                flexShrink: 0,
+                overflowY: "auto",
+              }}
+            >
               <div
                 style={{
                   background: "#1f1f2a",
-                  padding: "1rem",
+                  padding: "1.5rem",
                   borderRadius: "8px",
                   color: "#CCC",
+                  height: "fit-content",
+                  position: "sticky",
+                  top: "0",
                 }}
               >
-                <h3>Cart</h3>
+                <h3 style={{ marginBottom: "1rem" }}>Cart</h3>
                 {cartItems.length === 0 ? (
-                  <p>No items in cart.</p>
+                  <p style={{ color: "#888", fontStyle: "italic" }}>No items in cart.</p>
                 ) : (
-                  <ul style={{ listStyle: "none", paddingLeft: 0 }}>
+                  <div style={{ marginBottom: "1rem" }}>
                     {cartItems.map((entry, idx) => {
                       const item = entry.item;
                       const variant = item.variations.find((v) => v._id === entry.variant);
                       return (
-                        <li key={idx} style={{ marginBottom: "1rem" }}>
-                          <strong>{item.name}</strong>
-                          <br />
-                          Variant: {variant?.name || "N/A"}
-                          <br />
-                          Quantity: {entry.quantity}
-                          <br />
-                          Price: ${(variant?.price * entry.quantity).toFixed(2) || "0.00"}
-                          <br />
+                        <div
+                          key={idx}
+                          style={{
+                            marginBottom: "1rem",
+                            padding: "0.75rem",
+                            background: "#2A2A3A",
+                            borderRadius: "0.5rem",
+                            border: "1px solid #444",
+                          }}
+                        >
+                          <strong style={{ display: "block", marginBottom: "0.25rem" }}>
+                            {item.name}
+                          </strong>
+                          <div style={{ fontSize: "0.9rem", color: "#AAA" }}>
+                            <div>Variant: {variant?.name || "N/A"}</div>
+                            <div>Quantity: {entry.quantity}</div>
+                            <div>
+                              Price: ${(variant?.price * entry.quantity).toFixed(2) || "0.00"}
+                            </div>
+                          </div>
                           <Button
                             size="sm"
                             variant="danger"
@@ -419,35 +474,57 @@ export default function CreateOrder() {
                           >
                             Remove
                           </Button>
-                        </li>
+                        </div>
                       );
                     })}
-                  </ul>
+                  </div>
                 )}
-                <b>
-                  <h5>Subtotal: ${subtotal.toFixed(2)}</h5>
 
-                  <h5>Tax (13%): ${tax.toFixed(2)}</h5>
-                  <h5>Total: ${total.toFixed(2)}</h5>
-                </b>
-                <Form.Control
-                  onChange={(e) => setComment(e.target.value)}
-                  type="text"
-                  value={comment}
-                  placeholder="Comments"
-                />
-                <Button
-                  variant="success"
-                  onClick={() => submitOrder(cartItems)}
-                  disabled={cartItems.length === 0}
-                  style={{ marginTop: "1rem" }}
+                <div
+                  style={{
+                    borderTop: "1px solid #444",
+                    paddingTop: "1rem",
+                    marginTop: "1rem",
+                  }}
                 >
-                  Submit
-                </Button>
+                  <div style={{ marginBottom: "0.5rem" }}>
+                    <strong>Subtotal: ${subtotal.toFixed(2)}</strong>
+                  </div>
+                  <div style={{ marginBottom: "0.5rem" }}>
+                    <strong>Tax (13%): ${tax.toFixed(2)}</strong>
+                  </div>
+                  <div style={{ marginBottom: "1rem", fontSize: "1.1rem" }}>
+                    <strong>Total: ${total.toFixed(2)}</strong>
+                  </div>
+
+                  <Form.Control
+                    onChange={(e) => setComment(e.target.value)}
+                    type="text"
+                    value={comment}
+                    placeholder="Comments"
+                    style={{ marginBottom: "1rem" }}
+                  />
+
+                  <Button
+                    variant="success"
+                    onClick={() => submitOrder(cartItems)}
+                    disabled={cartItems.length === 0 || submittingOrder}
+                    style={{ width: "100%" }}
+                  >
+                    {submittingOrder ? (
+                      <>
+                        <Spinner animation="border" size="sm" className="me-2" />
+                        Submitting...
+                      </>
+                    ) : (
+                      "Submit Order"
+                    )}
+                  </Button>
+                </div>
               </div>
-            </Col>
-          </Row>
-        </Container>
+            </div>
+          </div>
+        </div>
       </DashboardLayout>
     </>
   );

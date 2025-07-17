@@ -63,8 +63,7 @@ export default function AnalyticsDashboard() {
       description: "Track overall revenue trends, growth patterns, and financial insights",
       icon: <FiTrendingUp size={48} />,
       color: "#00BCD4",
-      // path: "sales-analytics/revenue-growth",
-      path: "sales-analytics",
+      path: "sales-analytics/revenue-growth",
       stats: "Monthly growth, YoY comparison, profit trends",
     },
   ];
