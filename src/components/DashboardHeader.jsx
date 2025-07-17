@@ -11,7 +11,7 @@ export default function DashboardHeader() {
       <Navbar data-bs-theme="dark">
         <Container>
           <Navbar.Brand style={{ paddingLeft: "2rem" }}>
-            {user?.restaurantUsername || "Restaurant Name"}
+            {user?.restaurantName || "Restaurant Name"}
           </Navbar.Brand>
         </Container>
         <Container className="justify-content-end">

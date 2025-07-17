@@ -19,37 +19,55 @@ export default function CreateOrder() {
   const [groupedMenuItems, setGroupedMenuItems] = useState({});
   const [ingredients, setIngredients] = useState({});
   const taxRate = 0.13;
-  const subtotal = cartItems.reduce((sum, entry) => {
-    const variant = entry.item.variations.find((v) => v._id === entry.variant);
-    return sum + (variant?.price || 0) * entry.quantity;
-  }, 0);
-  const tax = subtotal * taxRate;
-  const total = tax + subtotal;
-  //get menu items
-  useEffect(() => {
-    async function getMenuItems() {
+  const [submittingOrder, setSubmittingOrder] = useState(false); // New state for order submission
+
+  // Extract menu fetching logic into a separate function
+  async function fetchMenuData() {
+    try {
+      setLoading(true);
+
       const resMenu = await apiFetch("/menu-management", {
         method: "GET",
       });
-      //   const data = await res.json();
+
+      // Process menu items for availability
       resMenu.menuItems.forEach((item) => {
         item.isDisabled = item.variations.every((v) => v.isAvailable === false);
       });
+
       console.log("MENU ITEMS: ", resMenu.menuItems);
       setMenuitems(resMenu.menuItems);
+
       const resCat = await apiFetch("/categories", { method: "GET" });
       console.log("CATEGORIES:", resCat.categories);
       setCatgories(resCat.categories);
+
       const grouped = resCat.categories.reduce((acc, category) => {
         acc[category._id] = resMenu.menuItems.filter((item) => item.category === category._id);
         return acc;
       }, {});
 
       setGroupedMenuItems(grouped);
+    } catch (error) {
+      console.error("Error fetching menu data:", error);
+      toast.error("Failed to load menu items");
+    } finally {
       setLoading(false);
     }
-    getMenuItems();
+  }
+
+  const subtotal = cartItems.reduce((sum, entry) => {
+    const variant = entry.item.variations.find((v) => v._id === entry.variant);
+    return sum + (variant?.price || 0) * entry.quantity;
+  }, 0);
+  const tax = subtotal * taxRate;
+  const total = tax + subtotal;
+
+  // Initial load
+  useEffect(() => {
+    fetchMenuData();
   }, []);
+
   async function setItemsToCategory(categoryId) {
     setLoading(true);
     setChoosenCategory(categoryId);
@@ -86,7 +104,9 @@ export default function CreateOrder() {
     console.log(cartItems);
     setDetailViewMenuItem(null);
     setQuantity(1);
+    setSelectedVariantId(null); // Reset selected variant
   }
+
   function mergeExistingItems(items) {
     const merged = [];
 
@@ -107,7 +127,10 @@ export default function CreateOrder() {
   function removeItemFromCart(index) {
     setCartItems((prev) => prev.filter((_, i) => i !== index));
   }
+
   async function submitOrder(cartItems) {
+    setSubmittingOrder(true); // Start loading state
+
     const orderLineItems = cartItems.map((entry) => {
       const variant = entry.item.variations.find((v) => v._id === entry.variant);
       const quantity = entry.quantity || 1;
@@ -148,6 +171,11 @@ export default function CreateOrder() {
       //clear data
       setCartItems([]);
       setComment("");
+
+      // OPTION 1: Refresh menu data to reflect updated inventory/availability
+      console.log("Refreshing menu data after order submission...");
+      await fetchMenuData();
+
       console.log("Order submitted successfully:", res);
     } catch (err) {
       console.log(err);
