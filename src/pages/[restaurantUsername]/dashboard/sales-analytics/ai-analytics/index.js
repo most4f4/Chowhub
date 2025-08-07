@@ -500,7 +500,7 @@ ${aiInsights}
             }}
           >
             <p style={{ margin: 0 }}>
-              🤖 Powered by Mixtral AI • Analysis includes sales trends, staff performance, menu
+              🤖 Powered by Claude 3 Haiku • Analysis includes sales trends, staff performance, menu
               optimization, and operational insights
             </p>
           </div>
