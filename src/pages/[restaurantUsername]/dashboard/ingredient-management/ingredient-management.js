@@ -83,7 +83,11 @@ export default function IngredientManagementPage() {
         ) : (
           <>
             <div style={{ display: "flex", gap: "1rem", margin: "1.5rem 0" }}>
-              <SummaryCard label="Total Ingredients" value={totals.totalIngredients} color="#4CAF50" />
+              <SummaryCard
+                label="Total Ingredients"
+                value={totals.totalIngredients}
+                color="#4CAF50"
+              />
               <SummaryCard label="Low Stock" value={totals.lowStock} color="#FF8C00" />
               <SummaryCard label="Critical Stock" value={totals.criticalStock} color="#E53935" />
             </div>
@@ -115,7 +119,14 @@ export default function IngredientManagementPage() {
               </button>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", marginBottom: "1rem", padding: "0 1rem" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                marginBottom: "1rem",
+                padding: "0 1rem",
+              }}
+            >
               <svg
                 style={{ marginRight: "0.5rem", color: "#FFF" }}
                 width="20"
@@ -150,7 +161,9 @@ export default function IngredientManagementPage() {
             <IngredientTable
               ingredients={ingredients}
               onEdit={(ingredient) => {
-                router.push(`/${restaurantUsername}/dashboard/ingredient-management/edit/${ingredient._id}`);
+                router.push(
+                  `/${restaurantUsername}/dashboard/ingredient-management/edit/${ingredient._id}`,
+                );
               }}
               onDelete={(ingredient) => {
                 setSelectedIngredient(ingredient);
@@ -190,8 +203,7 @@ export default function IngredientManagementPage() {
               </Modal.Header>
               <Modal.Body className={Style.modalBody}>
                 <p>
-                  Are you sure you want to delete{" "}
-                  <strong>{selectedIngredient?.name}</strong>?
+                  Are you sure you want to delete <strong>{selectedIngredient?.name}</strong>?
                 </p>
               </Modal.Body>
               <Modal.Footer className={Style.modalFooter}>

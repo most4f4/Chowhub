@@ -5,6 +5,8 @@ import { Button, Col, Container, Form, Image, Modal, Row, Spinner } from "react-
 import { toast } from "react-toastify";
 import Style from "./createOrder.module.css";
 import AnalyticsBackButton from "@/components/AnalyticsBackButton";
+import { useAtomValue } from "jotai";
+import { userAtom } from "@/store/atoms";
 
 export default function CreateOrder() {
   const [cartItems, setCartItems] = useState([]);
@@ -19,8 +21,10 @@ export default function CreateOrder() {
   const [comment, setComment] = useState("");
   const [groupedMenuItems, setGroupedMenuItems] = useState({});
   const [ingredients, setIngredients] = useState({});
-  const taxRate = 0.13;
+  const [restaurantTaxRate, setRestaurantTaxRate] = useState(13);
+  const taxRate = restaurantTaxRate / 100;
   const [submittingOrder, setSubmittingOrder] = useState(false);
+  const user = useAtomValue(userAtom);
 
   // Extract menu fetching logic into a separate function
   async function fetchMenuData() {
@@ -68,7 +72,18 @@ export default function CreateOrder() {
   useEffect(() => {
     fetchMenuData();
   }, []);
-
+  useEffect(() => {
+    async function getTaxRate() {
+      try {
+        const restaurantRes = await apiFetch(`/restaurant/${user.restaurantId}`);
+        const tax = restaurantRes?.restaurant?.taxRatePercent;
+        setRestaurantTaxRate(tax || 13);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    getTaxRate();
+  }, [user.restaurantId]);
   async function setItemsToCategory(categoryId) {
     setLoading(true);
     setChoosenCategory(categoryId);
@@ -495,7 +510,9 @@ export default function CreateOrder() {
                     <strong>Subtotal: ${subtotal.toFixed(2)}</strong>
                   </div>
                   <div style={{ marginBottom: "0.5rem" }}>
-                    <strong>Tax (13%): ${tax.toFixed(2)}</strong>
+                    <strong>
+                      Tax (${restaurantTaxRate}%): ${tax.toFixed(2)}
+                    </strong>
                   </div>
                   <div style={{ marginBottom: "1rem", fontSize: "1.1rem" }}>
                     <strong>Total: ${total.toFixed(2)}</strong>

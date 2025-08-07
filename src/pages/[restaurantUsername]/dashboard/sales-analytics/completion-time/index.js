@@ -6,6 +6,36 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { ManagerOnly } from "@/components/Protected";
 import { apiFetch } from "@/lib/api";
 import AnalyticsBackButton from "@/components/AnalyticsBackButton";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  PointElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  RadialLinearScale,
+  Filler,
+} from "chart.js";
+import { Bar, Line, Doughnut } from "react-chartjs-2";
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  PointElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  RadialLinearScale,
+  Filler,
+);
 
 export default function CompletionTimeAnalysis() {
   const router = useRouter();
@@ -16,6 +46,10 @@ export default function CompletionTimeAnalysis() {
     dailyAverages: [],
     insights: {},
     recommendations: [],
+  });
+  const [categoryData, setCategoryData] = useState({
+    categoryCompletionTimes: [],
+    dailyTrendsByCategory: [],
   });
   const [loading, setLoading] = useState(true);
   const [selectedTimeframe, setSelectedTimeframe] = useState("week");
@@ -33,8 +67,14 @@ export default function CompletionTimeAnalysis() {
         timeframe: selectedTimeframe,
       }).toString();
 
-      const response = await apiFetch(`/analytics/completion-time?${params}`);
-      setCompletionData(response);
+      // Load both regular and category data
+      const [regularResponse, categoryResponse] = await Promise.all([
+        apiFetch(`/analytics/completion-time?${params}`),
+        apiFetch(`/analytics/completion-time-by-category?${params}`),
+      ]);
+
+      setCompletionData(regularResponse);
+      setCategoryData(categoryResponse);
     } catch (err) {
       console.error("Failed to load completion time analytics:", err);
       setCompletionData({
@@ -42,6 +82,10 @@ export default function CompletionTimeAnalysis() {
         dailyAverages: [],
         insights: {},
         recommendations: [],
+      });
+      setCategoryData({
+        categoryCompletionTimes: [],
+        dailyTrendsByCategory: [],
       });
     } finally {
       setLoading(false);
@@ -74,6 +118,175 @@ export default function CompletionTimeAnalysis() {
     if (completionTime <= avgTime * 0.8) return "#4CAF50"; // Fast - Green
     if (completionTime <= avgTime * 1.2) return "#FF9800"; // Average - Orange
     return "#FF4444"; // Slow - Red
+  };
+
+  // Chart configurations
+  const categoryColors = {
+    Appetizers: "#FF6384",
+    "Main Dishes": "#36A2EB",
+    Desserts: "#FFCE56",
+    Drinks: "#4BC0C0",
+    Salads: "#9966FF",
+    Sides: "#FF9F40",
+    default: "#C9CBCF",
+  };
+
+  // Category completion time chart
+  const categoryChartData = {
+    labels: categoryData.categoryCompletionTimes.map((cat) => cat.category || "Uncategorized"),
+    datasets: [
+      {
+        label: "Average Completion Time (minutes)",
+        data: categoryData.categoryCompletionTimes.map((cat) => cat.avgCompletionTime),
+        backgroundColor: categoryData.categoryCompletionTimes.map(
+          (cat) => categoryColors[cat.category] || categoryColors.default,
+        ),
+        borderColor: categoryData.categoryCompletionTimes.map(
+          (cat) => categoryColors[cat.category] || categoryColors.default,
+        ),
+        borderWidth: 2,
+      },
+    ],
+  };
+
+  const categoryChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      title: {
+        display: true,
+        text: "Average Completion Time by Category",
+        color: "#FFF",
+        font: { size: 16 },
+      },
+      tooltip: {
+        callbacks: {
+          label: function (context) {
+            const category = categoryData.categoryCompletionTimes[context.dataIndex];
+            return [
+              `${context.label}: ${formatDuration(context.raw)}`,
+              `Orders: ${category?.totalOrders || 0}`,
+              `Range: ${formatDuration(category?.minCompletionTime || 0)} - ${formatDuration(category?.maxCompletionTime || 0)}`,
+            ];
+          },
+        },
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          color: "#CCC",
+          callback: function (value) {
+            return formatDuration(value);
+          },
+        },
+        grid: { color: "#3A3A4A" },
+      },
+      x: {
+        ticks: { color: "#CCC" },
+        grid: { color: "#3A3A4A" },
+      },
+    },
+  };
+
+  // Daily trends line chart
+  const dailyTrendsData = {
+    labels: completionData.dailyAverages.map((day) => {
+      const [year, month, dayNum] = day.date.split("-");
+      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(dayNum));
+      return date.toLocaleDateString([], { month: "short", day: "numeric" });
+    }),
+    datasets: [
+      {
+        label: "Daily Average Completion Time",
+        data: completionData.dailyAverages.map((day) => day.avgCompletionTime),
+        borderColor: "#FF9800",
+        backgroundColor: "rgba(255, 152, 0, 0.1)",
+        fill: true,
+        tension: 0.4,
+      },
+    ],
+  };
+
+  const dailyTrendsOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        labels: { color: "#CCC" },
+      },
+      title: {
+        display: true,
+        text: "Daily Completion Time Trends",
+        color: "#FFF",
+        font: { size: 16 },
+      },
+      tooltip: {
+        callbacks: {
+          label: function (context) {
+            const dayData = completionData.dailyAverages[context.dataIndex];
+            return [
+              `Average: ${formatDuration(context.raw)}`,
+              `Orders: ${dayData?.orderCount || 0}`,
+              `Range: ${formatDuration(dayData?.fastestTime || 0)} - ${formatDuration(dayData?.slowestTime || 0)}`,
+            ];
+          },
+        },
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          color: "#CCC",
+          callback: function (value) {
+            return formatDuration(value);
+          },
+        },
+        grid: { color: "#3A3A4A" },
+      },
+      x: {
+        ticks: { color: "#CCC" },
+        grid: { color: "#3A3A4A" },
+      },
+    },
+  };
+
+  // Category distribution pie chart
+  const categoryDistributionData = {
+    labels: categoryData.categoryCompletionTimes.map((cat) => cat.category || "Uncategorized"),
+    datasets: [
+      {
+        data: categoryData.categoryCompletionTimes.map((cat) => cat.totalOrders),
+        backgroundColor: categoryData.categoryCompletionTimes.map(
+          (cat) => categoryColors[cat.category] || categoryColors.default,
+        ),
+      },
+    ],
+  };
+
+  const categoryDistributionOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: "right",
+        labels: {
+          color: "#CCC",
+          font: { size: 12 },
+        },
+      },
+      title: {
+        display: true,
+        text: "Order Distribution by Category",
+        color: "#FFF",
+        font: { size: 16 },
+      },
+    },
   };
 
   const insights = completionData.insights || {};
@@ -358,7 +571,67 @@ export default function CompletionTimeAnalysis() {
                 </div>
               </div>
 
-              {/* Daily Averages Chart */}
+              {/* Charts Section */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "2fr 1fr",
+                  gap: "2rem",
+                  marginBottom: "2rem",
+                }}
+              >
+                {/* Category Completion Times Chart */}
+                <div
+                  style={{
+                    backgroundColor: "#1E1E2F",
+                    padding: "1.5rem",
+                    borderRadius: "8px",
+                    border: "1px solid #3A3A4A",
+                  }}
+                >
+                  <h3 style={{ marginBottom: "1rem" }}>📊 Completion Time by Category</h3>
+                  {categoryData.categoryCompletionTimes.length > 0 ? (
+                    <div style={{ height: "300px" }}>
+                      <Bar
+                        data={categoryChartData}
+                        options={categoryChartOptions}
+                        key="category-completion-chart"
+                      />
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: "center", padding: "2rem", color: "#CCC" }}>
+                      <p>No category data available</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Category Distribution Pie Chart */}
+                <div
+                  style={{
+                    backgroundColor: "#1E1E2F",
+                    padding: "1.5rem",
+                    borderRadius: "8px",
+                    border: "1px solid #3A3A4A",
+                  }}
+                >
+                  <h3 style={{ marginBottom: "1rem" }}>🥧 Order Distribution</h3>
+                  {categoryData.categoryCompletionTimes.length > 0 ? (
+                    <div style={{ height: "300px" }}>
+                      <Doughnut
+                        data={categoryDistributionData}
+                        options={categoryDistributionOptions}
+                        key="category-distribution-chart"
+                      />
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: "center", padding: "2rem", color: "#CCC" }}>
+                      <p>No category data available</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Daily Trends Chart */}
               <div
                 style={{
                   backgroundColor: "#1E1E2F",
@@ -368,83 +641,94 @@ export default function CompletionTimeAnalysis() {
                   border: "1px solid #3A3A4A",
                 }}
               >
-                <h3 style={{ marginBottom: "1rem" }}>📈 Daily Average Completion Times</h3>
-
-                {!completionData.dailyAverages || completionData.dailyAverages.length === 0 ? (
-                  <div style={{ textAlign: "center", padding: "2rem", color: "#CCC" }}>
-                    <p>No daily average data available</p>
+                <h3 style={{ marginBottom: "1rem" }}>📈 Daily Completion Time Trends</h3>
+                {completionData.dailyAverages.length > 0 ? (
+                  <div style={{ height: "300px" }}>
+                    <Line
+                      data={dailyTrendsData}
+                      options={dailyTrendsOptions}
+                      key="daily-trends-chart"
+                    />
                   </div>
                 ) : (
-                  <div style={{ display: "grid", gap: "0.5rem" }}>
-                    {completionData.dailyAverages.map((day, index) => {
-                      const maxTime = Math.max(
-                        ...completionData.dailyAverages.map((d) => d.avgCompletionTime),
-                      );
-                      const percentage = maxTime > 0 ? (day.avgCompletionTime / maxTime) * 100 : 0;
-
-                      return (
-                        <div key={index} style={{ marginBottom: "1rem" }}>
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              marginBottom: "0.5rem",
-                            }}
-                          >
-                            <span style={{ fontWeight: 600 }}>
-                              {(() => {
-                                const [year, month, dayNum] = day.date.split("-"); // Changed 'day' to 'dayNum'
-                                const date = new Date(
-                                  parseInt(year),
-                                  parseInt(month) - 1,
-                                  parseInt(dayNum), // Use 'dayNum' here too
-                                );
-                                return date.toLocaleDateString([], {
-                                  weekday: "long",
-                                  month: "short",
-                                  day: "numeric",
-                                });
-                              })()}
-                            </span>
-                            <div style={{ display: "flex", gap: "1rem" }}>
-                              <span style={{ color: "#FF9800", fontSize: "0.9rem" }}>
-                                {formatDuration(day.avgCompletionTime)}
-                              </span>
-                              <span style={{ color: "#4CAF50", fontSize: "0.9rem" }}>
-                                {day.orderCount} orders
-                              </span>
-                            </div>
-                          </div>
-                          <div
-                            style={{
-                              width: "100%",
-                              height: "12px",
-                              backgroundColor: "#3A3A4A",
-                              borderRadius: "6px",
-                              overflow: "hidden",
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: `${percentage}%`,
-                                height: "100%",
-                                backgroundColor:
-                                  percentage > 80
-                                    ? "#FF4444"
-                                    : percentage > 60
-                                      ? "#FF9800"
-                                      : "#4CAF50",
-                                borderRadius: "6px",
-                                transition: "width 1s ease-in-out",
-                              }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
+                  <div style={{ textAlign: "center", padding: "2rem", color: "#CCC" }}>
+                    <p>No daily trend data available</p>
                   </div>
                 )}
               </div>
+
+              {/* Category Performance Details */}
+              {categoryData.categoryCompletionTimes.length > 0 && (
+                <div
+                  style={{
+                    backgroundColor: "#1E1E2F",
+                    padding: "1.5rem",
+                    borderRadius: "8px",
+                    marginBottom: "2rem",
+                    border: "1px solid #3A3A4A",
+                  }}
+                >
+                  <h3 style={{ marginBottom: "1rem" }}>🍽️ Category Performance Details</h3>
+                  <div style={{ display: "grid", gap: "1rem" }}>
+                    {categoryData.categoryCompletionTimes.map((category, index) => (
+                      <div
+                        key={`category-detail-${index}-${category.category || "uncategorized"}`}
+                        style={{
+                          backgroundColor: "#252538",
+                          padding: "1rem",
+                          borderRadius: "8px",
+                          border: "1px solid #3A3A4A",
+                          display: "grid",
+                          gridTemplateColumns: "auto 1fr auto auto auto",
+                          gap: "1rem",
+                          alignItems: "center",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: "12px",
+                            height: "12px",
+                            borderRadius: "50%",
+                            backgroundColor:
+                              categoryColors[category.category] || categoryColors.default,
+                          }}
+                        />
+
+                        <div>
+                          <div style={{ fontWeight: 600, marginBottom: "0.25rem" }}>
+                            {category.category || "Uncategorized"}
+                          </div>
+                          <div style={{ color: "#CCC", fontSize: "0.9rem" }}>
+                            {category.totalOrders} orders • Avg {category.avgItemsPerOrder}{" "}
+                            items/order
+                          </div>
+                        </div>
+
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontWeight: 600, fontSize: "1.1rem" }}>
+                            {formatDuration(category.avgCompletionTime)}
+                          </div>
+                          <div style={{ color: "#888", fontSize: "0.8rem" }}>average</div>
+                        </div>
+
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ color: "#4CAF50", fontSize: "0.9rem" }}>
+                            {formatDuration(category.minCompletionTime)}
+                          </div>
+                          <div style={{ color: "#888", fontSize: "0.8rem" }}>fastest</div>
+                        </div>
+
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ color: "#FF4444", fontSize: "0.9rem" }}>
+                            {formatDuration(category.maxCompletionTime)}
+                          </div>
+                          <div style={{ color: "#888", fontSize: "0.8rem" }}>slowest</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Individual Order Analysis */}
               <div
@@ -468,9 +752,9 @@ export default function CompletionTimeAnalysis() {
                   </div>
                 ) : (
                   <div style={{ display: "grid", gap: "1rem" }}>
-                    {completionData.completionStats.map((order, index) => (
+                    {completionData.completionStats.slice(0, 10).map((order, index) => (
                       <div
-                        key={index}
+                        key={`order-${index}-${order.orderId || index}`}
                         style={{
                           backgroundColor: "#252538",
                           padding: "1rem",
@@ -520,6 +804,12 @@ export default function CompletionTimeAnalysis() {
                         </div>
                       </div>
                     ))}
+                    {completionData.completionStats.length > 10 && (
+                      <div style={{ textAlign: "center", padding: "1rem", color: "#888" }}>
+                        Showing first 10 orders. Total: {completionData.completionStats.length}{" "}
+                        orders analyzed.
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -539,7 +829,7 @@ export default function CompletionTimeAnalysis() {
                   <div style={{ display: "grid", gap: "1rem" }}>
                     {completionData.recommendations.map((rec, index) => (
                       <div
-                        key={index}
+                        key={`recommendation-${index}`}
                         style={{
                           backgroundColor: "#252538",
                           padding: "1rem",
@@ -589,160 +879,3 @@ export default function CompletionTimeAnalysis() {
     </DashboardLayout>
   );
 }
-
-// import { useRouter } from "next/router";
-// import DashboardLayout from "@/components/DashboardLayout";
-// import { ManagerOnly } from "@/components/Protected";
-// import { Card, Button } from "react-bootstrap";
-// import {
-//   FiCheckCircle,
-//   FiClock,
-//   FiTrendingUp,
-//   FiAlertTriangle,
-//   FiTarget,
-//   FiActivity,
-// } from "react-icons/fi";
-
-// export default function CompletionTimeAnalysis() {
-//   const router = useRouter();
-//   const { restaurantUsername } = router.query;
-
-//   return (
-//     <DashboardLayout>
-//       <ManagerOnly>
-//         <div style={{ padding: "1rem" }}>
-//           <h1
-//             style={{
-//               color: "#FFF",
-//               marginBottom: "2rem",
-//               display: "flex",
-//               alignItems: "center",
-//               gap: "1rem",
-//             }}
-//           >
-//             <FiCheckCircle style={{ color: "#FF9800" }} />
-//             Order Completion Time Analytics
-//           </h1>
-
-//           {/* Coming Soon Card */}
-//           <Card
-//             style={{ backgroundColor: "#1E1E2F", border: "2px solid #FF9800", textAlign: "center" }}
-//           >
-//             <Card.Body style={{ padding: "4rem 2rem" }}>
-//               <div style={{ fontSize: "4rem", marginBottom: "2rem" }}>
-//                 <FiClock style={{ color: "#FF9800" }} />
-//               </div>
-
-//               <h2 style={{ color: "#FFF", marginBottom: "1rem" }}>Coming Soon!</h2>
-
-//               <p
-//                 style={{
-//                   color: "#CCC",
-//                   fontSize: "1.1rem",
-//                   marginBottom: "2rem",
-//                   maxWidth: "600px",
-//                   margin: "0 auto 2rem",
-//                 }}
-//               >
-//                 Order Completion Time Analytics will provide comprehensive insights into your
-//                 kitchen efficiency, order processing speed, and service optimization opportunities.
-//               </p>
-
-//               {/* Feature Preview */}
-//               <div
-//                 style={{
-//                   display: "grid",
-//                   gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-//                   gap: "1.5rem",
-//                   marginBottom: "2rem",
-//                   textAlign: "left",
-//                 }}
-//               >
-//                 <div
-//                   style={{
-//                     backgroundColor: "#252538",
-//                     padding: "1.5rem",
-//                     borderRadius: "8px",
-//                     border: "1px solid #3A3A4A",
-//                   }}
-//                 >
-//                   <div style={{ color: "#4CAF50", fontSize: "1.5rem", marginBottom: "1rem" }}>
-//                     <FiTarget />
-//                   </div>
-//                   <h5 style={{ color: "#FFF", marginBottom: "0.5rem" }}>Average Completion Time</h5>
-//                   <p style={{ color: "#CCC", fontSize: "0.9rem", margin: 0 }}>
-//                     Track average order processing time from placement to completion
-//                   </p>
-//                 </div>
-
-//                 <div
-//                   style={{
-//                     backgroundColor: "#252538",
-//                     padding: "1.5rem",
-//                     borderRadius: "8px",
-//                     border: "1px solid #3A3A4A",
-//                   }}
-//                 >
-//                   <div style={{ color: "#2196F3", fontSize: "1.5rem", marginBottom: "1rem" }}>
-//                     <FiTrendingUp />
-//                   </div>
-//                   <h5 style={{ color: "#FFF", marginBottom: "0.5rem" }}>Performance Trends</h5>
-//                   <p style={{ color: "#CCC", fontSize: "0.9rem", margin: 0 }}>
-//                     Monitor completion time trends across different time periods
-//                   </p>
-//                 </div>
-
-//                 <div
-//                   style={{
-//                     backgroundColor: "#252538",
-//                     padding: "1.5rem",
-//                     borderRadius: "8px",
-//                     border: "1px solid #3A3A4A",
-//                   }}
-//                 >
-//                   <div style={{ color: "#FF4444", fontSize: "1.5rem", marginBottom: "1rem" }}>
-//                     <FiAlertTriangle />
-//                   </div>
-//                   <h5 style={{ color: "#FFF", marginBottom: "0.5rem" }}>Bottleneck Detection</h5>
-//                   <p style={{ color: "#CCC", fontSize: "0.9rem", margin: 0 }}>
-//                     Identify process bottlenecks and optimization opportunities
-//                   </p>
-//                 </div>
-
-//                 <div
-//                   style={{
-//                     backgroundColor: "#252538",
-//                     padding: "1.5rem",
-//                     borderRadius: "8px",
-//                     border: "1px solid #3A3A4A",
-//                   }}
-//                 >
-//                   <div style={{ color: "#9C27B0", fontSize: "1.5rem", marginBottom: "1rem" }}>
-//                     <FiActivity />
-//                   </div>
-//                   <h5 style={{ color: "#FFF", marginBottom: "0.5rem" }}>Kitchen Efficiency</h5>
-//                   <p style={{ color: "#CCC", fontSize: "0.9rem", margin: 0 }}>
-//                     Analyze kitchen performance and staff efficiency metrics
-//                   </p>
-//                 </div>
-//               </div>
-
-//               <Button
-//                 onClick={() => router.push(`/${restaurantUsername}/dashboard/sales-analytics`)}
-//                 style={{
-//                   backgroundColor: "#FF9800",
-//                   borderColor: "#FF9800",
-//                   padding: "0.75rem 2rem",
-//                   fontSize: "1.1rem",
-//                   fontWeight: 600,
-//                 }}
-//               >
-//                 Back to Analytics Dashboard
-//               </Button>
-//             </Card.Body>
-//           </Card>
-//         </div>
-//       </ManagerOnly>
-//     </DashboardLayout>
-//   );
-// }

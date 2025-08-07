@@ -6,6 +6,36 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { ManagerOnly } from "@/components/Protected";
 import { apiFetch } from "@/lib/api";
 import AnalyticsBackButton from "@/components/AnalyticsBackButton";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  PointElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  RadialLinearScale,
+  Filler,
+} from "chart.js";
+import { Bar, Line, Doughnut, Radar } from "react-chartjs-2";
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  PointElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  RadialLinearScale,
+  Filler,
+);
 
 export default function PeakHourAnalysis() {
   const router = useRouter();
@@ -38,7 +68,6 @@ export default function PeakHourAnalysis() {
       setPeakHourData(response);
     } catch (err) {
       console.error("Failed to load peak hour analytics:", err);
-      // If API fails, show empty state instead of hardcoded data
       setPeakHourData({
         hourlyStats: [],
         dailyPatterns: [],
@@ -76,7 +105,238 @@ export default function PeakHourAnalysis() {
     return days[dayIndex];
   };
 
+  // Chart configurations
   const insights = peakHourData.insights || {};
+
+  // Hourly activity bar chart
+  const hourlyChartData = {
+    labels: peakHourData.hourlyStats.map((stat) => getHourLabel(stat.hour)),
+    datasets: [
+      {
+        label: "Orders",
+        data: peakHourData.hourlyStats.map((stat) => stat.orderCount),
+        backgroundColor: "rgba(33, 150, 243, 0.8)",
+        borderColor: "#2196F3",
+        borderWidth: 2,
+        yAxisID: "y",
+      },
+      {
+        label: "Revenue ($)",
+        data: peakHourData.hourlyStats.map((stat) => stat.revenue),
+        backgroundColor: "rgba(255, 152, 0, 0.8)",
+        borderColor: "#FF9800",
+        borderWidth: 2,
+        yAxisID: "y1",
+        type: "line",
+        tension: 0.4,
+      },
+    ],
+  };
+
+  const hourlyChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      intersect: false,
+      mode: "index",
+    },
+    plugins: {
+      legend: {
+        labels: { color: "#CCC" },
+      },
+      title: {
+        display: true,
+        text: "24-Hour Activity Overview",
+        color: "#FFF",
+        font: { size: 16 },
+      },
+    },
+    scales: {
+      x: {
+        ticks: { color: "#CCC" },
+        grid: { color: "#3A3A4A" },
+      },
+      y: {
+        type: "linear",
+        display: true,
+        position: "left",
+        ticks: { color: "#CCC" },
+        grid: { color: "#3A3A4A" },
+        title: {
+          display: true,
+          text: "Orders",
+          color: "#2196F3",
+        },
+      },
+      y1: {
+        type: "linear",
+        display: true,
+        position: "right",
+        ticks: {
+          color: "#CCC",
+          callback: function (value) {
+            return "$" + value.toFixed(0);
+          },
+        },
+        grid: {
+          drawOnChartArea: false,
+          color: "#3A3A4A",
+        },
+        title: {
+          display: true,
+          text: "Revenue ($)",
+          color: "#FF9800",
+        },
+      },
+    },
+  };
+
+  // Daily patterns bar chart
+  const dailyPatternsData = {
+    labels: peakHourData.dailyPatterns.map((day) => getDayName(day.dayOfWeek)),
+    datasets: [
+      {
+        label: "Orders",
+        data: peakHourData.dailyPatterns.map((day) => day.orderCount),
+        backgroundColor: peakHourData.dailyPatterns.map((day, index) =>
+          index === 0 || index === 6 ? "rgba(255, 152, 0, 0.8)" : "rgba(76, 175, 80, 0.8)",
+        ), // Weekend vs Weekday colors
+        borderColor: peakHourData.dailyPatterns.map((day, index) =>
+          index === 0 || index === 6 ? "#FF9800" : "#4CAF50",
+        ),
+        borderWidth: 2,
+      },
+    ],
+  };
+
+  const dailyPatternsOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      title: {
+        display: true,
+        text: "Daily Order Patterns",
+        color: "#FFF",
+        font: { size: 16 },
+      },
+      tooltip: {
+        callbacks: {
+          label: function (context) {
+            const day = peakHourData.dailyPatterns[context.dataIndex];
+            return [
+              `Orders: ${context.raw}`,
+              `Revenue: $${day?.revenue?.toFixed(2) || 0}`,
+              `Avg Order: $${day?.avgOrderValue?.toFixed(2) || 0}`,
+            ];
+          },
+        },
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: { color: "#CCC" },
+        grid: { color: "#3A3A4A" },
+        title: {
+          display: true,
+          text: "Number of Orders",
+          color: "#FFF",
+        },
+      },
+      x: {
+        ticks: { color: "#CCC" },
+        grid: { color: "#3A3A4A" },
+      },
+    },
+  };
+
+  // Revenue distribution pie chart
+  const revenueDistributionData = {
+    labels: peakHourData.dailyPatterns.map((day) => getDayName(day.dayOfWeek)),
+    datasets: [
+      {
+        data: peakHourData.dailyPatterns.map((day) => day.revenue),
+        backgroundColor: [
+          "#FF6384", // Sunday
+          "#36A2EB", // Monday
+          "#FFCE56", // Tuesday
+          "#4BC0C0", // Wednesday
+          "#9966FF", // Thursday
+          "#FF9F40", // Friday
+          "#FF6384", // Saturday
+        ].slice(0, peakHourData.dailyPatterns.length),
+      },
+    ],
+  };
+
+  const revenueDistributionOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: "right",
+        labels: {
+          color: "#CCC",
+          font: { size: 12 },
+        },
+      },
+      title: {
+        display: true,
+        text: "Revenue by Day",
+        color: "#FFF",
+        font: { size: 16 },
+      },
+      tooltip: {
+        callbacks: {
+          label: function (context) {
+            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+            const percentage = ((context.raw / total) * 100).toFixed(1);
+            return `${context.label}: $${context.raw.toFixed(2)} (${percentage}%)`;
+          },
+        },
+      },
+    },
+  };
+
+  // Peak times heatmap visualization (enhanced)
+  const getHeatmapCell = (hour) => {
+    const hourData = peakHourData.hourlyStats.find((h) => h.hour === hour);
+    const orderCount = hourData?.orderCount || 0;
+    const revenue = hourData?.revenue || 0;
+    const maxOrders = Math.max(...peakHourData.hourlyStats.map((h) => h.orderCount), 1);
+    const intensity = (orderCount / maxOrders) * 100;
+
+    let backgroundColor = "#2A2A3A"; // Default gray
+    let textColor = "#CCC";
+
+    if (intensity > 80) {
+      backgroundColor = "#FF4444"; // High
+      textColor = "#FFF";
+    } else if (intensity > 60) {
+      backgroundColor = "#FF9800"; // Medium-High
+      textColor = "#FFF";
+    } else if (intensity > 40) {
+      backgroundColor = "#FFC107"; // Medium
+      textColor = "#000";
+    } else if (intensity > 20) {
+      backgroundColor = "#4CAF50"; // Low-Medium
+      textColor = "#FFF";
+    } else if (intensity > 0) {
+      backgroundColor = "#81C784"; // Low
+      textColor = "#FFF";
+    }
+
+    return {
+      backgroundColor,
+      textColor,
+      orderCount,
+      revenue,
+      intensity: Math.round(intensity),
+    };
+  };
 
   return (
     <DashboardLayout>
@@ -87,7 +347,7 @@ export default function PeakHourAnalysis() {
           </div>
           <h1 style={{ marginBottom: "2rem", fontSize: "2rem" }}>🕐 Peak Hour Analysis</h1>
 
-          {/* Simple Controls */}
+          {/* Controls */}
           <div
             style={{
               backgroundColor: "#1E1E2F",
@@ -358,7 +618,67 @@ export default function PeakHourAnalysis() {
                 </div>
               </div>
 
-              {/* Simple Heatmap */}
+              {/* Charts Section */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "2fr 1fr",
+                  gap: "2rem",
+                  marginBottom: "2rem",
+                }}
+              >
+                {/* Hourly Activity Chart */}
+                <div
+                  style={{
+                    backgroundColor: "#1E1E2F",
+                    padding: "1.5rem",
+                    borderRadius: "8px",
+                    border: "1px solid #3A3A4A",
+                  }}
+                >
+                  {peakHourData.hourlyStats.length > 0 ? (
+                    <div style={{ height: "350px" }}>
+                      <Bar
+                        data={hourlyChartData}
+                        options={hourlyChartOptions}
+                        key="hourly-activity-chart"
+                      />
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: "center", padding: "2rem", color: "#CCC" }}>
+                      <h3>📊 24-Hour Activity Overview</h3>
+                      <p>No hourly data available for the selected period</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Revenue Distribution Pie Chart */}
+                <div
+                  style={{
+                    backgroundColor: "#1E1E2F",
+                    padding: "1.5rem",
+                    borderRadius: "8px",
+                    border: "1px solid #3A3A4A",
+                  }}
+                >
+                  {peakHourData.dailyPatterns.length > 0 ? (
+                    <div style={{ height: "350px" }}>
+                      <Doughnut
+                        data={revenueDistributionData}
+                        options={revenueDistributionOptions}
+                        key="revenue-distribution-chart"
+                      />
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: "center", padding: "2rem", color: "#CCC" }}>
+                      <h3>🥧 Revenue by Day</h3>
+                      <p>No daily data available</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Daily Patterns Chart */}
               <div
                 style={{
                   backgroundColor: "#1E1E2F",
@@ -368,143 +688,258 @@ export default function PeakHourAnalysis() {
                   border: "1px solid #3A3A4A",
                 }}
               >
-                <h3 style={{ marginBottom: "1rem" }}>📊 24-Hour Activity Heatmap</h3>
-
-                {peakHourData.hourlyStats.length === 0 ? (
-                  <div style={{ textAlign: "center", padding: "2rem", color: "#CCC" }}>
-                    <p>No hourly data available for the selected period</p>
-                    <p style={{ fontSize: "0.9rem", color: "#888" }}>
-                      {peakHourData.hourlyStats.length === 0 && !loading
-                        ? "This could be because you only have 3 orders in your database. Try adding more orders or selecting a different date range."
-                        : ""}
-                    </p>
+                {peakHourData.dailyPatterns.length > 0 ? (
+                  <div style={{ height: "300px" }}>
+                    <Bar
+                      data={dailyPatternsData}
+                      options={dailyPatternsOptions}
+                      key="daily-patterns-chart"
+                    />
                   </div>
                 ) : (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                    {Array.from({ length: 24 }, (_, hour) => {
-                      const hourData = peakHourData.hourlyStats.find((h) => h.hour === hour);
-                      const orderCount = hourData?.orderCount || 0;
-                      const revenue = hourData?.revenue || 0;
-                      const maxOrders = Math.max(
-                        ...peakHourData.hourlyStats.map((h) => h.orderCount),
-                      );
-                      const intensity = maxOrders > 0 ? (orderCount / maxOrders) * 100 : 0;
-
-                      let backgroundColor = "#3A3A4A"; // Default gray
-                      if (intensity > 80)
-                        backgroundColor = "#FF4444"; // High
-                      else if (intensity > 60)
-                        backgroundColor = "#FF9800"; // Medium-High
-                      else if (intensity > 40)
-                        backgroundColor = "#FFC107"; // Medium
-                      else if (intensity > 20)
-                        backgroundColor = "#4CAF50"; // Low-Medium
-                      else if (intensity > 0) backgroundColor = "#81C784"; // Low
-
-                      return (
-                        <div
-                          key={hour}
-                          style={{
-                            minWidth: "60px",
-                            height: "80px",
-                            backgroundColor,
-                            borderRadius: "8px",
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            border: "1px solid #555",
-                            cursor: "pointer",
-                          }}
-                          title={`${getHourLabel(hour)}: ${orderCount} orders, ${revenue.toFixed(2)}`}
-                        >
-                          <div style={{ fontSize: "0.8rem", fontWeight: 600 }}>
-                            {getHourLabel(hour)}
-                          </div>
-                          <div style={{ fontSize: "0.7rem", marginTop: "4px" }}>
-                            {orderCount} orders
-                          </div>
-                        </div>
-                      );
-                    })}
+                  <div style={{ textAlign: "center", padding: "2rem", color: "#CCC" }}>
+                    <h3>📅 Daily Order Patterns</h3>
+                    <p>No daily pattern data available</p>
                   </div>
                 )}
               </div>
 
-              {/* Daily Patterns */}
+              {/* Enhanced Heatmap */}
               <div
                 style={{
                   backgroundColor: "#1E1E2F",
                   padding: "1.5rem",
                   borderRadius: "8px",
+                  marginBottom: "2rem",
                   border: "1px solid #3A3A4A",
                 }}
               >
-                <h3 style={{ marginBottom: "1rem" }}>📅 Daily Patterns</h3>
+                <h3 style={{ marginBottom: "1rem" }}>🔥 24-Hour Activity Heatmap</h3>
 
-                {!peakHourData.dailyPatterns || peakHourData.dailyPatterns.length === 0 ? (
+                {peakHourData.hourlyStats.length === 0 ? (
                   <div style={{ textAlign: "center", padding: "2rem", color: "#CCC" }}>
-                    <p>No daily pattern data available</p>
-                    <p style={{ fontSize: "0.9rem", color: "#888" }}>
-                      With only 3 orders, there may not be enough data to show meaningful daily
-                      patterns. Try creating more test orders or selecting a wider date range.
-                    </p>
+                    <p>No hourly data available for the selected period</p>
                   </div>
                 ) : (
                   <>
-                    {peakHourData.dailyPatterns.map((day, index) => {
-                      const maxOrders = Math.max(
-                        ...peakHourData.dailyPatterns.map((d) => d.orderCount),
-                      );
-                      const percentage = maxOrders > 0 ? (day.orderCount / maxOrders) * 100 : 0;
+                    {/* Heatmap Legend */}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "1rem",
+                        marginBottom: "1rem",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <span style={{ color: "#CCC", fontSize: "0.9rem" }}>Activity Level:</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <div
+                          style={{
+                            width: "15px",
+                            height: "15px",
+                            backgroundColor: "#2A2A3A",
+                            borderRadius: "3px",
+                          }}
+                        ></div>
+                        <span style={{ fontSize: "0.8rem", color: "#888" }}>None</span>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <div
+                          style={{
+                            width: "15px",
+                            height: "15px",
+                            backgroundColor: "#81C784",
+                            borderRadius: "3px",
+                          }}
+                        ></div>
+                        <span style={{ fontSize: "0.8rem", color: "#888" }}>Low</span>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <div
+                          style={{
+                            width: "15px",
+                            height: "15px",
+                            backgroundColor: "#4CAF50",
+                            borderRadius: "3px",
+                          }}
+                        ></div>
+                        <span style={{ fontSize: "0.8rem", color: "#888" }}>Medium</span>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <div
+                          style={{
+                            width: "15px",
+                            height: "15px",
+                            backgroundColor: "#FFC107",
+                            borderRadius: "3px",
+                          }}
+                        ></div>
+                        <span style={{ fontSize: "0.8rem", color: "#888" }}>High</span>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <div
+                          style={{
+                            width: "15px",
+                            height: "15px",
+                            backgroundColor: "#FF4444",
+                            borderRadius: "3px",
+                          }}
+                        ></div>
+                        <span style={{ fontSize: "0.8rem", color: "#888" }}>Peak</span>
+                      </div>
+                    </div>
 
-                      return (
-                        <div key={index} style={{ marginBottom: "1rem" }}>
+                    {/* Heatmap Grid */}
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(80px, 1fr))",
+                        gap: "8px",
+                      }}
+                    >
+                      {Array.from({ length: 24 }, (_, hour) => {
+                        const cellData = getHeatmapCell(hour);
+
+                        return (
                           <div
+                            key={hour}
                             style={{
+                              backgroundColor: cellData.backgroundColor,
+                              color: cellData.textColor,
+                              borderRadius: "8px",
+                              padding: "0.75rem",
                               display: "flex",
-                              justifyContent: "space-between",
-                              marginBottom: "0.5rem",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              border: "1px solid #555",
+                              cursor: "pointer",
+                              transition: "transform 0.2s ease",
+                              minHeight: "100px",
                             }}
-                          >
-                            <span style={{ fontWeight: 600 }}>{getDayName(day.dayOfWeek)}</span>
-                            <div style={{ display: "flex", gap: "1rem" }}>
-                              <span style={{ color: "#4CAF50", fontSize: "0.9rem" }}>
-                                {day.orderCount} orders
-                              </span>
-                              <span style={{ color: "#FF9800", fontSize: "0.9rem" }}>
-                                ${day.revenue.toFixed(2)}
-                              </span>
-                              <span style={{ color: "#2196F3", fontSize: "0.9rem" }}>
-                                Avg: ${day.avgOrderValue.toFixed(2)}
-                              </span>
-                            </div>
-                          </div>
-                          <div
-                            style={{
-                              width: "100%",
-                              height: "12px",
-                              backgroundColor: "#3A3A4A",
-                              borderRadius: "6px",
-                              overflow: "hidden",
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.transform = "scale(1.05)";
                             }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.transform = "scale(1)";
+                            }}
+                            title={`${getHourLabel(hour)}: ${cellData.orderCount} orders, $${cellData.revenue.toFixed(2)} revenue (${cellData.intensity}% intensity)`}
                           >
                             <div
                               style={{
-                                width: `${percentage}%`,
-                                height: "100%",
-                                backgroundColor: index === 5 || index === 6 ? "#FF9800" : "#4CAF50", // Weekend highlighting
-                                borderRadius: "6px",
-                                transition: "width 1s ease-in-out",
+                                fontSize: "0.9rem",
+                                fontWeight: 600,
+                                marginBottom: "0.25rem",
                               }}
-                            />
+                            >
+                              {getHourLabel(hour)}
+                            </div>
+                            <div style={{ fontSize: "0.8rem", textAlign: "center" }}>
+                              {cellData.orderCount} orders
+                            </div>
+                            <div style={{ fontSize: "0.7rem", textAlign: "center", opacity: 0.8 }}>
+                              ${cellData.revenue.toFixed(0)}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </>
                 )}
               </div>
+
+              {/* Staffing Recommendations */}
+              {peakHourData.staffingRecommendations &&
+                peakHourData.staffingRecommendations.length > 0 && (
+                  <div
+                    style={{
+                      backgroundColor: "#1E1E2F",
+                      padding: "1.5rem",
+                      borderRadius: "8px",
+                      border: "1px solid #3A3A4A",
+                    }}
+                  >
+                    <h3 style={{ marginBottom: "1rem" }}>👥 Staffing Recommendations</h3>
+
+                    <div style={{ display: "grid", gap: "1rem" }}>
+                      {peakHourData.staffingRecommendations.map((rec, index) => (
+                        <div
+                          key={`staffing-${index}`}
+                          style={{
+                            backgroundColor: "#252538",
+                            padding: "1rem",
+                            borderRadius: "8px",
+                            border: "1px solid #3A3A4A",
+                            display: "grid",
+                            gridTemplateColumns: "auto 1fr auto",
+                            gap: "1rem",
+                            alignItems: "center",
+                          }}
+                        >
+                          <div
+                            style={{
+                              color:
+                                rec.priority === "high"
+                                  ? "#FF4444"
+                                  : rec.priority === "medium"
+                                    ? "#FF9800"
+                                    : "#4CAF50",
+                              fontSize: "1.2rem",
+                            }}
+                          >
+                            {rec.priority === "high"
+                              ? "🚨"
+                              : rec.priority === "medium"
+                                ? "⚠️"
+                                : "💡"}
+                          </div>
+
+                          <div>
+                            <div
+                              style={{ fontWeight: 600, marginBottom: "0.25rem", color: "#FFF" }}
+                            >
+                              {rec.timeSlot}
+                            </div>
+                            <div
+                              style={{ color: "#CCC", fontSize: "0.9rem", marginBottom: "0.5rem" }}
+                            >
+                              Current: {rec.currentStaff} staff • Recommended:{" "}
+                              {rec.recommendedStaff} staff • Avg: {rec.avgOrders} orders
+                            </div>
+                            <p style={{ margin: 0, color: "#AAA", fontSize: "0.85rem" }}>
+                              {rec.recommendation}
+                            </p>
+                          </div>
+
+                          <div
+                            style={{
+                              backgroundColor:
+                                rec.priority === "high"
+                                  ? "#FF444420"
+                                  : rec.priority === "medium"
+                                    ? "#FF980020"
+                                    : "#4CAF5020",
+                              color:
+                                rec.priority === "high"
+                                  ? "#FF4444"
+                                  : rec.priority === "medium"
+                                    ? "#FF9800"
+                                    : "#4CAF50",
+                              padding: "0.5rem 1rem",
+                              borderRadius: "4px",
+                              fontSize: "0.8rem",
+                              fontWeight: 600,
+                              textAlign: "center",
+                            }}
+                          >
+                            {rec.priority.toUpperCase()}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
             </div>
           )}
         </div>

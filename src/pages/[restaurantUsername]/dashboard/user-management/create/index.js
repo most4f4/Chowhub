@@ -8,8 +8,8 @@ import { toast } from "react-toastify";
 import { useRouter } from "next/router";
 import { userAtom } from "@/store/atoms";
 import { checkUniqueUserName } from "@/services/checkUsername";
+import styles from "./createEmployee.module.css";
 
-//to do: refactor code to make forum a component
 export default function CreateEmployeeForm() {
   const router = useRouter();
 
@@ -49,17 +49,22 @@ export default function CreateEmployeeForm() {
       check();
     }, 500);
   }, [form.username]);
+
   const handleChange = (e) => {
-    // const { name, value } = e.target;
-    // setForm((prev) => ({ ...prev, [name]: value }));
     setForm({ ...form, [e.target.name]: e.target.value });
   };
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // const form = e.currentTarget;
-    //add validation
+    setWarning(""); // Clear previous warnings
 
-    //
+    // Email validation using a simple regex
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (form.email && !emailRegex.test(form.email)) {
+      setWarning("Please enter a valid email address.");
+      return;
+    }
+
     try {
       console.log({ form });
       const res = await apiFetch("/users", {
@@ -79,77 +84,94 @@ export default function CreateEmployeeForm() {
       setWarning(err.message);
     }
   };
+
   return (
     <DashboardLayout>
       <ManagerOnly>
         <h1>Create New Employee</h1>
-        <>
-          <Form onSubmit={handleSubmit}>
-            <Form.Group className="mb-3" controlId="formFirstName">
-              <Form.Label>First Name</Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="Enter First Name"
-                required
-                name="firstName"
-                value={FormData.firstName}
-                onChange={handleChange}
-              />
-            </Form.Group>
-            <Form.Group className="mb-3" controlId="formLastName">
-              <Form.Label>Last Name</Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="Enter Last Name"
-                required
-                name="lastName"
-                value={FormData.lastName}
-                onChange={handleChange}
-              />
-            </Form.Group>
-            <Form.Group className="mb-3" controlId="formEmail">
-              <Form.Label>Email</Form.Label>
-              <Form.Control
-                type="email"
-                placeholder="Enter Email"
-                required
-                name="email"
-                value={FormData.lastName}
-                onChange={handleChange}
-              />
-            </Form.Group>
-            <Form.Group className="mb-3" controlId="formEmergencyContact">
-              <Form.Label>Emergency Contact</Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="Enter Emergency Contact"
-                required
-                name="emergencyContact"
-                value={FormData.emergencyContact}
-                onChange={handleChange}
-              />
-            </Form.Group>
-            <Form.Group className="mb-3" controlId="formuserName">
-              <Form.Label>Username</Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="Enter Username"
-                required
-                name="username"
-                value={form.username}
-                onChange={handleChange}
-                isInvalid={availableUsername === false}
-                isValid={availableUsername === true}
-              />
-              {availableUsername === false && (
-                <Form.Text className="text-danger">Username is already taken</Form.Text>
-              )}
-              {availableUsername === true && (
-                <Form.Text className="text-success">Username is available</Form.Text>
-              )}
-            </Form.Group>
+        <Form className={styles.formWrapper} onSubmit={handleSubmit}>
+          {/* First Name */}
+          <Form.Group className="mb-3" controlId="formFirstName">
+            <Form.Label>First Name</Form.Label>
+            <Form.Control
+              type="text"
+              placeholder="Enter First Name"
+              required
+              name="firstName"
+              value={form.firstName} 
+              onChange={handleChange}
+              className={styles.employeeLabel}
+            />
+          </Form.Group>
 
-            <div key={`inline-radio`} className="mb-3">
+          {/* Last Name */}
+          <Form.Group className="mb-3" controlId="formLastName">
+            <Form.Label>Last Name</Form.Label>
+            <Form.Control
+              type="text"
+              placeholder="Enter Last Name"
+              required
+              name="lastName"
+              value={form.lastName} 
+              onChange={handleChange}
+              className={styles.employeeLabel}
+            />
+          </Form.Group>
+
+          {/* Email */}
+          <Form.Group className="mb-3" controlId="formEmail">
+            <Form.Label>Email</Form.Label>
+            <Form.Control
+              type="email"
+              placeholder="Enter Email"
+              required
+              name="email"
+              value={form.email} 
+              onChange={handleChange}
+              className={styles.employeeLabel}
+            />
+          </Form.Group>
+
+          {/* Emergency Contact */}
+          <Form.Group className="mb-3" controlId="formEmergencyContact">
+            <Form.Label>Emergency Contact</Form.Label>
+            <Form.Control
+              type="text"
+              placeholder="Enter Emergency Contact"
+              required
+              name="emergencyContact"
+              value={form.emergencyContact}
+              onChange={handleChange}
+              className={styles.employeeLabel}
+            />
+          </Form.Group>
+
+          {/* Username */}
+          <Form.Group className="mb-3" controlId="formuserName">
+            <Form.Label>Username</Form.Label>
+            <Form.Control
+              type="text"
+              placeholder="Enter Username"
+              required
+              name="username"
+              value={form.username}
+              onChange={handleChange}
+              className={styles.employeeLabel}
+              isInvalid={availableUsername === false}
+              isValid={availableUsername === true}
+            />
+            {availableUsername === false && (
+              <Form.Text className="text-danger">Username is already taken</Form.Text>
+            )}
+            {availableUsername === true && (
+              <Form.Text className="text-success">Username is available</Form.Text>
+            )}
+          </Form.Group>
+
+          {/* Role (Radio Buttons) */}
+          <Form.Group className="mb-3">
+            <Form.Label>Role</Form.Label>
+            <div key={`inline-radio`} className="d-flex gap-3">
               <Form.Check
                 inline
                 label="Staff"
@@ -158,6 +180,7 @@ export default function CreateEmployeeForm() {
                 id={`inline-radio-1`}
                 required
                 value={"staff"}
+                checked={form.role === "staff"}
                 onChange={handleChange}
               />
               <Form.Check
@@ -168,17 +191,18 @@ export default function CreateEmployeeForm() {
                 id={`inline-radio-2`}
                 required
                 value={"manager"}
+                checked={form.role === "manager"}
                 onChange={handleChange}
               />
             </div>
+          </Form.Group>
 
-            {warning && <p className="text-danger">{warning}</p>}
+          {warning && <p className="text-danger">{warning}</p>}
 
-            <Button variant="primary" type="submit">
-              Submit
-            </Button>
-          </Form>
-        </>
+          <Button variant="primary" type="submit" className={styles.submitButton}>
+            Submit
+          </Button>
+        </Form>
       </ManagerOnly>
     </DashboardLayout>
   );

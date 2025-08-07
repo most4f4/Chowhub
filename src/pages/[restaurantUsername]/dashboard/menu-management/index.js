@@ -6,7 +6,7 @@ import { apiFetch } from "@/lib/api";
 import MenuItemTable from "@/components/MenuItemTable";
 import SummaryCard from "@/components/SummaryCard";
 import CategoryModal from "@/components/CategoryModal";
-import { Button, Modal } from "react-bootstrap";
+import { Button, Modal, Pagination } from "react-bootstrap";
 import Style from "./menuManage.module.css";
 
 export default function MenuManagementPage() {
@@ -25,6 +25,9 @@ export default function MenuManagementPage() {
   const [selectedMenuItem, setSelectedMenuItem] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10); 
 
   useEffect(() => {
     const fetchData = async () => {
@@ -50,7 +53,7 @@ export default function MenuManagementPage() {
 
         setCategories(catRes.categories || []);
         setMenuItems(itemsWithCategoryNames);
-        calculateStats(itemsWithCategoryNames);
+        calculateStats(itemsWithCategoryNames); 
       } catch (err) {
         console.error("Failed to load menu items or categories", err);
         setMenuItems([]);
@@ -61,14 +64,23 @@ export default function MenuManagementPage() {
     };
 
     fetchData();
-  }, []);
+  }, []); 
 
   async function loadItems() {
     try {
       const res = await apiFetch(`/menu-management`);
       const items = Array.isArray(res.menuItems) ? res.menuItems : [];
-      setMenuItems(items);
-      calculateStats(items);
+      const categoryMap = {}; // Re-create categoryMap if categories are not reloaded with items
+      categories.forEach((cat) => {
+        categoryMap[cat._id] = cat.name;
+      });
+      const itemsWithCategoryNames = items.map((item) => ({
+        ...item,
+        categoryName: categoryMap[item.category] || "Unknown",
+      }));
+      setMenuItems(itemsWithCategoryNames);
+      calculateStats(itemsWithCategoryNames);
+      setCurrentPage(1); // Reset page after items are reloaded (e.g. after deletion)
     } catch (err) {
       console.error("Failed to load menu items", err);
       setMenuItems([]);
@@ -90,13 +102,14 @@ export default function MenuManagementPage() {
   function calculateStats(items) {
     const catMap = {};
     for (const item of items) {
-      const cat = item.category?.trim() || "Uncategorized";
+      // Use item.categoryName if it's already mapped, otherwise fallback to item.category
+      const cat = item.categoryName?.trim() || item.category?.trim() || "Uncategorized";
       catMap[cat] = (catMap[cat] || 0) + 1;
     }
     setCategoryCounts(catMap);
   }
 
-  const filteredItems = Array.isArray(menuItems)
+  const filteredAndSearchedItems = Array.isArray(menuItems)
     ? menuItems.filter((item) => {
         const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCategory =
@@ -104,6 +117,13 @@ export default function MenuManagementPage() {
         return matchesSearch && matchesCategory;
       })
     : [];
+
+  const totalFilteredItems = filteredAndSearchedItems.length;
+  const totalPages = Math.ceil(totalFilteredItems / itemsPerPage);
+
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredAndSearchedItems.slice(indexOfFirstItem, indexOfLastItem);
 
   const handleAddCategory = () => {
     setSelectedCategory(null);
@@ -124,23 +144,35 @@ export default function MenuManagementPage() {
 
   const handleDeleteCategoryConfirm = async (category) => {
     setDeleteModalOpen(false);
-    const res = await apiFetch(`/categories/${category._id}`, {
-      method: "DELETE",
-    });
-    loadCategories();
+    try {
+      await apiFetch(`/categories/${category._id}`, {
+        method: "DELETE",
+      });
+      loadCategories(); // Reload categories list
+      loadItems(); // Reload menu items as category deletion might affect them
+    } catch (err) {
+      console.error("Delete category failed", err);
+    }
   };
 
- const handleDeleteMenuItem = async (menuItem) => {
+  const handleDeleteMenuItem = async () => { 
+    if (!selectedMenuItem) return; 
     setDeleteMenuModalOpen(false);
-    const res = await apiFetch(`/menu-management/${menuItem._id}`, {
-      method: "DELETE",
-    });
-    loadItems();
+    try {
+      await apiFetch(`/menu-management/${selectedMenuItem._id}`, { // Use selectedMenuItem
+        method: "DELETE",
+      });
+      loadItems(); // Reload menu items to update the table
+    } catch (err) {
+      console.error("Delete menu item failed", err);
+    }
   };
+
   return (
     <DashboardLayout>
       <ManagerOnly>
-        <h1>Menu Management</h1>
+        
+        <h1>🍔 Menu Management</h1>
 
         <div
           style={{
@@ -247,7 +279,10 @@ export default function MenuManagementPage() {
           <select
             id="category-filter"
             value={selectedCategoryFilter}
-            onChange={(e) => setSelectedCategoryFilter(e.target.value)}
+            onChange={(e) => {
+              setSelectedCategoryFilter(e.target.value);
+              setCurrentPage(1); 
+            }}
             style={{
               padding: "0.5rem 1rem",
               borderRadius: 4,
@@ -268,7 +303,10 @@ export default function MenuManagementPage() {
             type="text"
             placeholder="Search menu items by name..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1); // Reset to first page on search change
+            }}
             style={{
               flex: 1,
               padding: "0.5rem 1rem",
@@ -281,7 +319,7 @@ export default function MenuManagementPage() {
         </div>
 
         <MenuItemTable
-          items={filteredItems}
+          items={currentItems} 
           restaurantUsername={restaurantUsername}
           onDelete={(item) => {
             setSelectedMenuItem(item);
@@ -292,12 +330,36 @@ export default function MenuManagementPage() {
           }}
         />
 
+        {totalFilteredItems > itemsPerPage && ( // Only show pagination if there's more than one page
+          <div style={{ display: "flex", justifyContent: "center", marginTop: "1rem" }}>
+            {Array.from({ length: totalPages }, (_, i) => (
+              <button
+                key={i + 1}
+                onClick={() => setCurrentPage(i + 1)}
+                style={{
+                  backgroundColor: currentPage === i + 1 ? "#388E3C" : "#2A2A3A",
+                  color: "#FFF",
+                  border: "none",
+                  padding: "0.5rem 1rem",
+                  margin: "0 0.25rem",
+                  borderRadius: 4,
+                  cursor: "pointer",
+                }}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
+        )}
+
+
         {modalOpen && (
           <CategoryModal
             open={modalOpen}
             onClose={() => {
               setModalOpen(false);
               loadCategories();
+              loadItems(); 
             }}
             initialName={selectedCategory?.name || ""}
             categoryId={selectedCategory?._id || null}
@@ -347,7 +409,7 @@ export default function MenuManagementPage() {
             <Button variant="secondary" onClick={() => setDeleteMenuModalOpen(false)}>
               Close
             </Button>
-            <Button variant="danger" onClick={() => handleDeleteMenuItem(selectedMenuItem)}>
+            <Button variant="danger" onClick={handleDeleteMenuItem}>
               Delete
             </Button>
           </Modal.Footer>

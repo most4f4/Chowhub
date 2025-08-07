@@ -1,4 +1,4 @@
-// src/pages/[restaurantUsername]/dashboard/sales-analytics/index.js
+// src/pages/[restaurantUsername]/dashboard/sales-analytics/staff-performance/index.js
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
@@ -9,6 +9,36 @@ import { Form, Button, Row, Col } from "react-bootstrap";
 import { FiUser, FiDollarSign, FiShoppingCart, FiTrendingUp, FiCalendar } from "react-icons/fi";
 import { toast } from "react-toastify";
 import AnalyticsBackButton from "@/components/AnalyticsBackButton";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  PointElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  RadialLinearScale,
+  Filler,
+} from "chart.js";
+import { Bar, Line, Doughnut, Radar } from "react-chartjs-2";
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  PointElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  RadialLinearScale,
+  Filler,
+);
 
 export default function SalesAnalyticsPage() {
   const router = useRouter();
@@ -315,6 +345,267 @@ export default function SalesAnalyticsPage() {
 
   const topPerformer = getTopPerformer();
 
+  // Chart configurations
+  const staffColors = [
+    "#FF6384",
+    "#36A2EB",
+    "#FFCE56",
+    "#4BC0C0",
+    "#9966FF",
+    "#FF9F40",
+    "#FF6384",
+    "#C9CBCF",
+  ];
+
+  // Sales comparison bar chart
+  const salesComparisonData = {
+    labels: salesData
+      .slice(0, 8)
+      .map((staff) => `${staff.staffInfo?.firstName} ${staff.staffInfo?.lastName?.charAt(0)}.`),
+    datasets: [
+      {
+        label: "Total Sales ($)",
+        data: salesData.slice(0, 8).map((staff) => staff.totalSales),
+        backgroundColor: staffColors.slice(0, salesData.length),
+        borderColor: staffColors.slice(0, salesData.length),
+        borderWidth: 2,
+      },
+    ],
+  };
+
+  const salesComparisonOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      title: {
+        display: true,
+        text: "Staff Sales Comparison",
+        color: "#FFF",
+        font: { size: 16 },
+      },
+      tooltip: {
+        callbacks: {
+          label: function (context) {
+            const staff = salesData[context.dataIndex];
+            return [
+              `Sales: $${context.raw.toFixed(2)}`,
+              `Orders: ${staff?.totalOrders || 0}`,
+              `Avg Order: $${staff?.avgOrderValue?.toFixed(2) || 0}`,
+            ];
+          },
+        },
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          color: "#CCC",
+          callback: function (value) {
+            return "$" + value.toFixed(0);
+          },
+        },
+        grid: { color: "#3A3A4A" },
+        title: {
+          display: true,
+          text: "Sales ($)",
+          color: "#FFF",
+        },
+      },
+      x: {
+        ticks: { color: "#CCC" },
+        grid: { color: "#3A3A4A" },
+      },
+    },
+  };
+
+  // Orders vs Sales scatter plot (as bar chart)
+  const ordersVsSalesData = {
+    labels: salesData
+      .slice(0, 6)
+      .map((staff) => `${staff.staffInfo?.firstName} ${staff.staffInfo?.lastName?.charAt(0)}.`),
+    datasets: [
+      {
+        label: "Orders",
+        data: salesData.slice(0, 6).map((staff) => staff.totalOrders),
+        backgroundColor: "rgba(54, 162, 235, 0.8)",
+        borderColor: "#36A2EB",
+        borderWidth: 2,
+        yAxisID: "y",
+      },
+      {
+        label: "Avg Order Value ($)",
+        data: salesData
+          .slice(0, 6)
+          .map((staff) => (staff.totalOrders > 0 ? staff.totalSales / staff.totalOrders : 0)),
+        backgroundColor: "rgba(255, 152, 0, 0.8)",
+        borderColor: "#FF9800",
+        borderWidth: 2,
+        yAxisID: "y1",
+        type: "line",
+        tension: 0.4,
+      },
+    ],
+  };
+
+  const ordersVsSalesOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        labels: { color: "#CCC" },
+      },
+      title: {
+        display: true,
+        text: "Orders vs Average Order Value",
+        color: "#FFF",
+        font: { size: 16 },
+      },
+    },
+    scales: {
+      x: {
+        ticks: { color: "#CCC" },
+        grid: { color: "#3A3A4A" },
+      },
+      y: {
+        type: "linear",
+        display: true,
+        position: "left",
+        ticks: { color: "#CCC" },
+        grid: { color: "#3A3A4A" },
+        title: {
+          display: true,
+          text: "Number of Orders",
+          color: "#36A2EB",
+        },
+      },
+      y1: {
+        type: "linear",
+        display: true,
+        position: "right",
+        ticks: {
+          color: "#CCC",
+          callback: function (value) {
+            return "$" + value.toFixed(0);
+          },
+        },
+        grid: {
+          drawOnChartArea: false,
+          color: "#3A3A4A",
+        },
+        title: {
+          display: true,
+          text: "Avg Order Value ($)",
+          color: "#FF9800",
+        },
+      },
+    },
+  };
+
+  // Performance radar chart for top 5 staff
+  const radarData = {
+    labels: ["Total Sales", "Order Count", "Avg Order Value", "Performance Score", "Activity"],
+    datasets: salesData.slice(0, 5).map((staff, index) => {
+      const maxSales = Math.max(...salesData.map((s) => s.totalSales));
+      const maxOrders = Math.max(...salesData.map((s) => s.totalOrders));
+      const maxAvgOrder = Math.max(
+        ...salesData.map((s) => (s.totalOrders > 0 ? s.totalSales / s.totalOrders : 0)),
+      );
+      const performanceScore = salesData.length > 0 ? (staff.totalSales / maxSales) * 100 : 0;
+      const activityScore = staff.lastOrderDate
+        ? 100 -
+          Math.min(
+            ((new Date() - new Date(staff.lastOrderDate)) / (1000 * 60 * 60 * 24 * 7)) * 20,
+            100,
+          )
+        : 0;
+
+      return {
+        label: `${staff.staffInfo?.firstName} ${staff.staffInfo?.lastName?.charAt(0)}.`,
+        data: [
+          (staff.totalSales / maxSales) * 100,
+          (staff.totalOrders / maxOrders) * 100,
+          staff.totalOrders > 0 ? (staff.totalSales / staff.totalOrders / maxAvgOrder) * 100 : 0,
+          performanceScore,
+          Math.max(activityScore, 0),
+        ],
+        backgroundColor: `${staffColors[index]}20`,
+        borderColor: staffColors[index],
+        pointBackgroundColor: staffColors[index],
+      };
+    }),
+  };
+
+  const radarOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      title: {
+        display: true,
+        text: "Staff Performance Comparison",
+        color: "#FFF",
+        font: { size: 16 },
+      },
+      legend: {
+        labels: { color: "#CCC", font: { size: 12 } },
+      },
+    },
+    scales: {
+      r: {
+        angleLines: { color: "#3A3A4A" },
+        grid: { color: "#3A3A4A" },
+        pointLabels: { color: "#CCC", font: { size: 11 } },
+        ticks: { color: "#888", display: false },
+        max: 100,
+      },
+    },
+  };
+
+  // Sales distribution pie chart
+  const salesDistributionData = {
+    labels: salesData
+      .slice(0, 6)
+      .map((staff) => `${staff.staffInfo?.firstName} ${staff.staffInfo?.lastName?.charAt(0)}.`),
+    datasets: [
+      {
+        data: salesData.slice(0, 6).map((staff) => staff.totalSales),
+        backgroundColor: staffColors.slice(0, 6),
+      },
+    ],
+  };
+
+  const salesDistributionOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: "right",
+        labels: {
+          color: "#CCC",
+          font: { size: 12 },
+        },
+      },
+      title: {
+        display: true,
+        text: "Sales Distribution",
+        color: "#FFF",
+        font: { size: 16 },
+      },
+      tooltip: {
+        callbacks: {
+          label: function (context) {
+            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+            const percentage = ((context.raw / total) * 100).toFixed(1);
+            return `${context.label}: $${context.raw.toFixed(2)} (${percentage}%)`;
+          },
+        },
+      },
+    },
+  };
+
   return (
     <DashboardLayout>
       <ManagerOnly>
@@ -428,11 +719,15 @@ export default function SalesAnalyticsPage() {
                 }}
               />
               <p>Loading sales data...</p>
-              <style>
+              <style jsx>
                 {`
                   @keyframes spin {
-                    0% { transform: rotate(0deg); }
-                    100% { transform: rotate(360deg); }
+                    0% {
+                      transform: rotate(0deg);
+                    }
+                    100% {
+                      transform: rotate(360deg);
+                    }
                   }
                 `}
               </style>
@@ -480,6 +775,109 @@ export default function SalesAnalyticsPage() {
                 )}
               </div>
 
+              {/* Charts Section */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "2fr 1fr",
+                  gap: "2rem",
+                  marginBottom: "2rem",
+                }}
+              >
+                {/* Sales Comparison Chart */}
+                <div
+                  style={{
+                    backgroundColor: "#1E1E2F",
+                    padding: "1.5rem",
+                    borderRadius: "8px",
+                    border: "1px solid #3A3A4A",
+                  }}
+                >
+                  {salesData.length > 0 ? (
+                    <div style={{ height: "350px" }}>
+                      <Bar data={salesComparisonData} options={salesComparisonOptions} />
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: "center", padding: "2rem", color: "#CCC" }}>
+                      <h3>📊 Staff Sales Comparison</h3>
+                      <p>No sales data available</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Sales Distribution Pie Chart */}
+                <div
+                  style={{
+                    backgroundColor: "#1E1E2F",
+                    padding: "1.5rem",
+                    borderRadius: "8px",
+                    border: "1px solid #3A3A4A",
+                  }}
+                >
+                  {salesData.length > 0 ? (
+                    <div style={{ height: "350px" }}>
+                      <Doughnut data={salesDistributionData} options={salesDistributionOptions} />
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: "center", padding: "2rem", color: "#CCC" }}>
+                      <h3>🥧 Sales Distribution</h3>
+                      <p>No data available</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Orders vs Sales Performance */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "2rem",
+                  marginBottom: "2rem",
+                }}
+              >
+                <div
+                  style={{
+                    backgroundColor: "#1E1E2F",
+                    padding: "1.5rem",
+                    borderRadius: "8px",
+                    border: "1px solid #3A3A4A",
+                  }}
+                >
+                  {salesData.length > 0 ? (
+                    <div style={{ height: "350px" }}>
+                      <Bar data={ordersVsSalesData} options={ordersVsSalesOptions} />
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: "center", padding: "2rem", color: "#CCC" }}>
+                      <h3>📈 Orders vs Average Order Value</h3>
+                      <p>No data available</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Performance Radar Chart */}
+                <div
+                  style={{
+                    backgroundColor: "#1E1E2F",
+                    padding: "1.5rem",
+                    borderRadius: "8px",
+                    border: "1px solid #3A3A4A",
+                  }}
+                >
+                  {salesData.length > 0 ? (
+                    <div style={{ height: "350px" }}>
+                      <Radar data={radarData} options={radarOptions} />
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: "center", padding: "2rem", color: "#CCC" }}>
+                      <h3>🎯 Performance Radar</h3>
+                      <p>No data available</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Leaderboard Section */}
               {salesData.length > 0 && (
                 <div style={{ marginBottom: "2rem" }}>
@@ -504,11 +902,11 @@ export default function SalesAnalyticsPage() {
                   >
                     {salesData
                       .sort((a, b) => b.totalSales - a.totalSales)
-                      .slice(0, 3)
+                      .slice(0, 5)
                       .map((staff, index) => {
                         const rank = index + 1;
-                        const medalColors = ["#FFD700", "#C0C0C0", "#CD7F32"];
-                        const medals = ["🥇", "🥈", "🥉"];
+                        const medalColors = ["#FFD700", "#C0C0C0", "#CD7F32", "#4CAF50", "#2196F3"];
+                        const medals = ["🥇", "🥈", "🥉", "🎖️", "🏅"];
 
                         return (
                           <div
@@ -518,7 +916,7 @@ export default function SalesAnalyticsPage() {
                               alignItems: "center",
                               justifyContent: "space-between",
                               padding: "1rem",
-                              marginBottom: index < 2 ? "1rem" : 0,
+                              marginBottom: index < 4 ? "1rem" : 0,
                               backgroundColor: "#252538",
                               borderRadius: 6,
                               border: `2px solid ${medalColors[index]}20`,
@@ -547,12 +945,120 @@ export default function SalesAnalyticsPage() {
                                 ${staff.totalSales.toFixed(2)}
                               </p>
                               <p style={{ margin: 0, color: "#CCC", fontSize: "0.9rem" }}>
-                                {staff.totalOrders} orders
+                                {staff.totalOrders} orders • $
+                                {staff.totalOrders > 0
+                                  ? (staff.totalSales / staff.totalOrders).toFixed(2)
+                                  : "0.00"}{" "}
+                                avg
                               </p>
                             </div>
                           </div>
                         );
                       })}
+                  </div>
+                </div>
+              )}
+
+              {/* Performance Insights */}
+              {salesData.length > 0 && (
+                <div style={{ marginBottom: "2rem" }}>
+                  <h3
+                    style={{
+                      color: "#FFF",
+                      marginBottom: "1rem",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                    }}
+                  >
+                    💡 Performance Insights
+                  </h3>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+                      gap: "1rem",
+                    }}
+                  >
+                    {/* Average Performance Insight */}
+                    <div
+                      style={{
+                        backgroundColor: "#1E1E2F",
+                        padding: "1.5rem",
+                        borderRadius: 8,
+                        border: "1px solid #3A3A4A",
+                      }}
+                    >
+                      <h4 style={{ color: "#4CAF50", margin: "0 0 0.5rem 0" }}>
+                        📊 Average Performance
+                      </h4>
+                      <p style={{ color: "#CCC", margin: 0 }}>
+                        Average sales per staff:{" "}
+                        <strong style={{ color: "#FFF" }}>
+                          ${(totalSales / salesData.length).toFixed(2)}
+                        </strong>
+                        <br />
+                        Average orders per staff:{" "}
+                        <strong style={{ color: "#FFF" }}>
+                          {Math.round(totalOrders / salesData.length)}
+                        </strong>
+                      </p>
+                    </div>
+
+                    {/* Top Performer Insight */}
+                    {topPerformer && (
+                      <div
+                        style={{
+                          backgroundColor: "#1E1E2F",
+                          padding: "1.5rem",
+                          borderRadius: 8,
+                          border: "1px solid #FFD700",
+                        }}
+                      >
+                        <h4 style={{ color: "#FFD700", margin: "0 0 0.5rem 0" }}>
+                          🏆 Top Performer Impact
+                        </h4>
+                        <p style={{ color: "#CCC", margin: 0 }}>
+                          {topPerformer.staffInfo?.firstName} generated{" "}
+                          <strong style={{ color: "#FFD700" }}>
+                            {((topPerformer.totalSales / totalSales) * 100).toFixed(1)}%
+                          </strong>{" "}
+                          of total sales with{" "}
+                          <strong style={{ color: "#FFF" }}>{topPerformer.totalOrders}</strong>{" "}
+                          orders.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Efficiency Insight */}
+                    <div
+                      style={{
+                        backgroundColor: "#1E1E2F",
+                        padding: "1.5rem",
+                        borderRadius: 8,
+                        border: "1px solid #2196F3",
+                      }}
+                    >
+                      <h4 style={{ color: "#2196F3", margin: "0 0 0.5rem 0" }}>
+                        ⚡ Order Efficiency
+                      </h4>
+                      <p style={{ color: "#CCC", margin: 0 }}>
+                        Highest avg order value:{" "}
+                        <strong style={{ color: "#FFF" }}>
+                          $
+                          {Math.max(
+                            ...salesData.map((s) =>
+                              s.totalOrders > 0 ? s.totalSales / s.totalOrders : 0,
+                            ),
+                          ).toFixed(2)}
+                        </strong>
+                        <br />
+                        Most orders processed:{" "}
+                        <strong style={{ color: "#FFF" }}>
+                          {Math.max(...salesData.map((s) => s.totalOrders))}
+                        </strong>
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}

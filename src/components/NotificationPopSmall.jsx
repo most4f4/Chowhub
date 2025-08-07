@@ -1,6 +1,7 @@
 import Badge from 'react-bootstrap/Badge';
 import { apiFetch } from "@/lib/api";
 import { Button } from 'react-bootstrap';
+import { useEffect } from 'react';
 export default function NotificationPopSmall({from, message, seen, timestamp, type, notificationId}){
     const formatTime = new Date(timestamp).toLocaleDateString();
     let typeBadge; 
@@ -25,6 +26,12 @@ export default function NotificationPopSmall({from, message, seen, timestamp, ty
           </Badge>
         </div>;
     }
+
+      useEffect(() => {
+    if (!seen) {
+      notificationSeen(notificationId);
+    }
+  }, [notificationId, seen]);
     const notificationSeen = async(notificationId) =>{
         try{
             const res = await apiFetch(`/notification/${notificationId}`, {
@@ -34,15 +41,29 @@ export default function NotificationPopSmall({from, message, seen, timestamp, ty
     }
   return (
     <div
-      className={`d-flex flex-column p-2 border-bottom text-dark`}
-      style={{ fontSize: "0.9rem" }}
+      style={{
+        flex: 1,
+        background: "#2A2A3A",
+        borderRadius: 12,
+        padding: "1.25rem",
+        margin:"1rem",
+        // border: `2px solid `,
+        transition: "all 0.3s ease",
+        position: "relative",
+        overflow: "hidden",
+      }}
     >
-      <div className="d-flex justify-content-between align-items-center">
-        <strong>{from} {seen? "👁" : ""}</strong>
-        <small className="text">{formatTime}</small>
-        <Button onClick={() => notificationSeen(notificationId)}>Seen </Button>
+      <div className="d-flex justify-content-between align-items-center"
+              style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginBottom: "0.5rem",
+        }}>
+        <strong >{from} {seen? "👁" : ""}</strong>
+        <small style={{ color: "#BBB" }} className="text">{formatTime}</small>
+        {/* <Button onClick={() => notificationSeen(notificationId)}>Seen </Button> */}
       </div>
-      <div className="text">{message}</div>
+      <div   style={{ marginBottom: "0.5rem" }} className="text">{message}</div>
       {type && (
         typeBadge
       )}

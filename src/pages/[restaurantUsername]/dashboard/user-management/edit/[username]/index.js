@@ -1,23 +1,20 @@
 import { useRouter } from "next/router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { ManagerOnly } from "@/components/Protected";
-import { useState } from "react";
 import { Form, Button } from "react-bootstrap";
 import { apiFetch } from "@/lib/api";
 import { toast } from "react-toastify";
 import { userAtom } from "@/store/atoms";
 import { useAtomValue } from "jotai";
-
-//future to do: update it to use context rather than router query
-//refactor code to make forum a component
+import styles from "./editEmployee.module.css"; 
 export default function EditEmployee() {
   const router = useRouter();
-  const [userId, setUserId] = useState();
-  // Holds warning messages to display if something goes wrong (e.g., duplicate email)
+  const [userId, setUserId] = useState(null);
   const [warning, setWarning] = useState("");
   const user = useAtomValue(userAtom);
   const [isOnlyManager, setIsOnlyManager] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [formData, setFormData] = useState({
     username: "",
@@ -28,25 +25,14 @@ export default function EditEmployee() {
     phone: "",
     emergencyContact: "",
   });
-  //data could be gotten through api end point, but it's also avialable on user managemnet menu
-  //data from user-management page:
-  /*
-                            fullName
-                        username
-                        email
-                        role
-                        userStatus
-                        phone
-                        emergencyContact`
-    */
 
   useEffect(() => {
-    if (router.isReady) {
+    if (router.isReady && Object.keys(router.query).length > 0) {
       const { username, fullName, email, role, userStatus, phone, emergencyContact, _id } =
         router.query;
       const [firstName, lastName] = fullName.split(" ");
-      //conver user status back into true false
-      const trueFalseStatus = userStatus == "Active";
+      const trueFalseStatus = userStatus === "Active";
+      
       setFormData({
         username: username,
         firstName: firstName,
@@ -58,32 +44,37 @@ export default function EditEmployee() {
         emergencyContact: emergencyContact,
       });
       setUserId(_id);
+      setIsLoading(false);
     }
   }, [router.isReady, router.query]);
+
   useEffect(() => {
     async function checkNumberOfManagers() {
-      const data = await apiFetch("/restaurant");
-      console.log(data);
-      if (data.totalManagers > 1 && formData.role === "manager") {
-        return;
-      }
-      if (formData.role == "manager") {
-        setIsOnlyManager(true);
+      if (!formData.role) return;
+      try {
+        const data = await apiFetch("/restaurant");
+        if (data.totalManagers > 1 && formData.role === "manager") {
+          setIsOnlyManager(false);
+        } else if (formData.role === "manager") {
+          setIsOnlyManager(true);
+        } else {
+          setIsOnlyManager(false);
+        }
+      } catch (err) {
+        console.error("Failed to check number of managers", err);
       }
     }
     checkNumberOfManagers();
-  }, [formData.role, userId, router.query.role]);
+  }, [formData.role]);
+
   const handleChange = (e) => {
-    // const { name, value } = e.target;
-    // setForm((prev) => ({ ...prev, [name]: value }));
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // const form = e.currentTarget;
-    //add validation
+    setWarning("");
 
-    //
     try {
       console.log({ formData });
       const res = await apiFetch(`/users/${userId}`, {
@@ -95,97 +86,123 @@ export default function EditEmployee() {
         position: "top-center",
         autoClose: 5000,
       });
-      console.log(res.message); // Log success message
+      console.log(res.message);
       router.push(`/${user.restaurantUsername}/dashboard/user-management`);
     } catch (err) {
       console.log(err, "error occured while updating employee");
-      // If the API call fails, show the error message
       setWarning(err.message);
     }
   };
-  if (!formData)
+
+  if (isLoading) {
     return (
       <DashboardLayout>
         <ManagerOnly>
-          <h1>Loading User Data...</h1>
-        </ManagerOnly>{" "}
+          <h1 className="text-white">Loading User Data...</h1>
+        </ManagerOnly>
       </DashboardLayout>
     );
+  }
+
   return (
     <DashboardLayout>
       <ManagerOnly>
-        <>
-          <h1>Editing Data For: {formData.username}</h1>
-          <Form onSubmit={handleSubmit}>
-            <Form.Group className="mb-3" controlId="formFirstName">
-              <Form.Label>First Name</Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="Enter First Name"
+        <h1 className="text-white">Editing Data For: {formData.username}</h1>
+        <Form className={styles.formWrapper} onSubmit={handleSubmit}>
+          <Form.Group className="mb-3" controlId="formFirstName">
+            <Form.Label className={styles.employeeLabel}>First Name</Form.Label>
+            <Form.Control
+              type="text"
+              placeholder="Enter First Name"
+              required
+              name="firstName"
+              value={formData.firstName}
+              onChange={handleChange}
+              className={styles.employeeLabel}
+            />
+          </Form.Group>
+
+          <Form.Group className="mb-3" controlId="formLastName">
+            <Form.Label className={styles.employeeLabel}>Last Name</Form.Label>
+            <Form.Control
+              type="text"
+              placeholder="Enter Last Name"
+              required
+              name="lastName"
+              value={formData.lastName}
+              onChange={handleChange}
+              className={styles.employeeLabel}
+            />
+          </Form.Group>
+
+          <Form.Group className="mb-3" controlId="formEmail">
+            <Form.Label className={styles.employeeLabel}>Email</Form.Label>
+            <Form.Control
+              type="email"
+              placeholder="Enter Email"
+              required
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              className={styles.employeeLabel}
+            />
+          </Form.Group>
+          
+          <Form.Group className="mb-3" controlId="formPhone">
+            <Form.Label className={styles.employeeLabel}>Phone Number</Form.Label>
+            <Form.Control
+              type="tel"
+              placeholder="Enter Phone Number"
+              required
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+              className={styles.employeeLabel}
+            />
+          </Form.Group>
+
+          <Form.Group className="mb-3" controlId="formEmergencyContact">
+            <Form.Label className={styles.employeeLabel}>Emergency Contact</Form.Label>
+            <Form.Control
+              type="text"
+              placeholder="Enter Emergency Contact"
+              required
+              name="emergencyContact"
+              value={formData.emergencyContact}
+              onChange={handleChange}
+              className={styles.employeeLabel}
+            />
+          </Form.Group>
+
+          <Form.Group className="mb-3" controlId="formuserName">
+            <Form.Label className={styles.employeeLabel}>Username</Form.Label>
+            <Form.Control
+              type="text"
+              placeholder="Enter Username"
+              required
+              name="username"
+              value={formData.username}
+              onChange={handleChange}
+              className={styles.employeeLabel}
+              disabled // Username should not be editable
+            />
+          </Form.Group>
+          
+          <Form.Group className="mb-3">
+            <Form.Label className={styles.employeeLabel}>Role</Form.Label>
+            <div key={`inline-radio-role`} className="d-flex gap-3">
+              <Form.Check
+                inline
+                label="Staff"
+                name="role"
+                type="radio"
+                id={`inline-radio-1`}
                 required
-                name="firstName"
-                value={formData.firstName}
+                value={"staff"}
+                checked={formData.role === "staff"}
                 onChange={handleChange}
+                disabled={isOnlyManager}
               />
-            </Form.Group>
-            <Form.Group className="mb-3" controlId="formLastName">
-              <Form.Label>Last Name</Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="Enter Last Name"
-                required
-                name="lastName"
-                value={formData.lastName}
-                onChange={handleChange}
-              />
-            </Form.Group>
-            <Form.Group className="mb-3" controlId="formEmail">
-              <Form.Label>Email</Form.Label>
-              <Form.Control
-                type="email"
-                placeholder="Enter Email"
-                required
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-              />
-            </Form.Group>
-            <Form.Group className="mb-3" controlId="formEmergencyContact">
-              <Form.Label>Emergency Contact</Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="Enter Emergency Contact"
-                required
-                name="emergencyContact"
-                value={formData.emergencyContact}
-                onChange={handleChange}
-              />
-            </Form.Group>
-            <Form.Group className="mb-3" controlId="formuserName">
-              <Form.Label>Username</Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="Enter Username"
-                required
-                name="username"
-                value={formData.username}
-                onChange={handleChange}
-              />
-            </Form.Group>
-            <div key={`inline-radio-role`} className="mb-3">
-              {isOnlyManager === false && (
-                <Form.Check
-                  inline
-                  label="Staff"
-                  name="role"
-                  type="radio"
-                  id={`inline-radio-1`}
-                  required
-                  value={"staff"}
-                  checked={formData.role === "staff"}
-                  onChange={handleChange}
-                />
-              )}
               <Form.Check
                 inline
                 label="Manager"
@@ -197,28 +214,31 @@ export default function EditEmployee() {
                 checked={formData.role === "manager"}
                 onChange={handleChange}
               />
-              {isOnlyManager === true && (
-                <Form.Text className="text-danger">
-                  This user is the only manager. We have disabled setting this user as staff
-                </Form.Text>
-              )}
             </div>
-            {}
-            <Form.Check // prettier-ignore
+            {isOnlyManager && (
+              <Form.Text className="text-danger">
+                This user is the only manager. We have disabled setting this user as staff.
+              </Form.Text>
+            )}
+          </Form.Group>
+
+          <Form.Group className="mb-3" controlId="custom-switch">
+            <Form.Label className={styles.employeeLabel}>Active Status</Form.Label>
+            <Form.Check
               type="switch"
-              id="custom-switch"
-              label="Active Status"
+              label=""
               checked={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.checked.valueOf() })}
+              onChange={(e) => setFormData({ ...formData, status: e.target.checked })}
               name="status"
-            />{" "}
-            <br />
-            {warning && <p className="text-danger">{warning}</p>}
-            <Button variant="primary" type="submit">
-              Update
-            </Button>
-          </Form>
-        </>
+            />
+          </Form.Group>
+          
+          {warning && <p className="text-danger">{warning}</p>}
+
+          <Button type="submit" className={styles.submitButton}>
+            Update
+          </Button>
+        </Form>
       </ManagerOnly>
     </DashboardLayout>
   );

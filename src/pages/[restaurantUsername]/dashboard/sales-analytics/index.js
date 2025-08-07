@@ -11,6 +11,7 @@ import {
   FiTrendingUp,
   FiBarChart,
   FiActivity,
+  FiZap,
 } from "react-icons/fi";
 
 export default function AnalyticsDashboard() {
@@ -59,12 +60,12 @@ export default function AnalyticsDashboard() {
       stats: "Best sellers, profit margins, seasonal trends",
     },
     {
-      title: "Revenue & Growth Analytics",
-      description: "Track overall revenue trends, growth patterns, and financial insights",
-      icon: <FiTrendingUp size={48} />,
-      color: "#00BCD4",
-      path: "sales-analytics/revenue-growth",
-      stats: "Monthly growth, YoY comparison, profit trends",
+      title: "AI Business Insights",
+      description: "Get AI-powered analysis and recommendations for your restaurant performance",
+      icon: <FiZap size={48} />,
+      color: "#673AB7",
+      path: "sales-analytics/ai-analytics",
+      stats: "Smart analysis, actionable recommendations, performance optimization",
     },
   ];
 

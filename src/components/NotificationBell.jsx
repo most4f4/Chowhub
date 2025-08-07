@@ -11,7 +11,8 @@ export default function NotificationBell(){
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(false);
     const [selectedDropDown, setSelectedDropDown] = useState("All");
-    const [unreadFilter, setUnreadFilter] = useState(false);
+    const [unreadFilter, setUnreadFilter] = useState(true);
+    const unreadCount = notifications.filter(n => !n.seen).length;
     
     useEffect(() =>{
         getNotifications();
@@ -49,7 +50,12 @@ export default function NotificationBell(){
         setSelectedDropDown("All");
       }
     }
-
+const filteredNotifications = notifications.filter(n => {
+  const matchesType =
+    selectedDropDown === "All" || n.from.toLowerCase() === selectedDropDown.toLowerCase();
+  const matchesUnread = !unreadFilter || !n.seen;
+  return matchesType && matchesUnread;
+});
     return(
 
     <div className="position-relative d-inline-block">
@@ -60,31 +66,39 @@ export default function NotificationBell(){
         {/* Notifications <Badge bg="secondary">{notifications.length}</Badge>
         <span className="visually-hidden">unread messages</span> */}  
 </svg>
-  {notifications.some(n => !n.seen) && (
-    <span
-      className="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"
-      style={{ width: "10px", height: "10px" }}
-    >
-      <span className="visually-hidden">unread notifications</span>
-    </span>
-  )}
+  {unreadCount > 0 && (
+  <span
+    className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+    style={{ fontSize: "0.7rem", padding: "4px 6px" }}
+  >
+    {unreadCount}
+    <span className="visually-hidden">unread notifications</span>
+  </span>
+)}
       </Button>
 
       {showNotifications && (
 <>
         
         <div
-          className="position-absolute bg-white border rounded shadow-sm mt-2"
-          style={{
-            width: "300px",
-            maxHeight: "400px",
-            overflowY: "auto",
-            zIndex: 1000,
-            right: 0,
-          }}
+  className="position-absolute border rounded mt-2"
+  style={{
+    backgroundColor: "#1E1E2F",
+    color: "#EEE",
+    width: "300px",
+    maxHeight: "400px",
+    overflowY: "auto",
+    zIndex: 1000,
+    right: 0,
+    boxShadow: "0 0 10px rgba(0,0,0,0.6)",
+    borderColor: "#333"
+  }}
         >
-            <div className="d-flex justify-content-between align-items-center px-3 py-2 border-bottom bg-light">
-         <DropdownButton  variant="secondary" size="sm" title={selectedDropDown}
+          <div className="d-flex justify-content-between align-items-center px-3 py-2 border-bottom"
+     style={{
+       backgroundColor: "#2C2C3A",
+       borderColor: "#333"
+     }}>         <DropdownButton  variant="secondary" size="sm" title={selectedDropDown}
          onSelect={(eventKey) => {
       if (eventKey === "1") setSelectedDropdown("All");
       else if (eventKey === "2") setSelectedDropdown("System");
@@ -95,22 +109,22 @@ export default function NotificationBell(){
          </DropdownButton>
 
 
-<Form type="checkbox">
+{/* <Form type="checkbox">
             <Form.Check // prettier-ignore
             type="checkbox"
             label={<span className="text-dark">Unread</span>}
             checked={unreadFilter}
             onChange={(e) => setUnreadFilter(e.target.checked)}
           />
-</Form>
+</Form> */}
 
     </div>
           {loading ? (
             <div className="p-3 text-center text-muted">Loading...</div>
-          ) : notifications.length === 0 ? (
-            <div className="p-3 text-center text-muted">No notifications</div>
+          ) : filteredNotifications.length === 0 ? (
+            <div className="p-3 text-center">No notifications</div>
           ) : (
-            notifications
+            filteredNotifications
             .filter(n => {
               console.log("Notification types:", notifications.map(n => n.type));
 console.log("selectedDropDown:", selectedDropDown);

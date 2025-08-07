@@ -1,156 +1,302 @@
+// Source Code\chowhub\src\pages\[restaurantUsername]\dashboard\supplier-management\index.js
+
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import DashboardLayout from "@/components/DashboardLayout";
 import { ManagerOnly } from "@/components/Protected";
-import { Card, Button } from "react-bootstrap";
-import {
-  FiCheckCircle,
-  FiClock,
-  FiTrendingUp,
-  FiAlertTriangle,
-  FiTarget,
-  FiActivity,
-} from "react-icons/fi";
+import SupplierTable from "@/components/SupplierTable";
+import { apiFetch } from "@/lib/api"; 
+import { Modal, Button, Form, InputGroup, Row, Col } from "react-bootstrap"; 
+import { toast } from "react-toastify";
+import { useAtomValue, getDefaultStore } from "jotai"; 
+import { userAtom, tokenAtom } from "@/store/atoms"; 
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"; 
+import { faSearch, faPlus } from "@fortawesome/free-solid-svg-icons"; 
 
-export default function SupplierManagement() {
+
+export default function SupplierManagementPage() {
   const router = useRouter();
   const { restaurantUsername } = router.query;
+
+  // Jotai for user and token management (for 401 handling)
+  const user = useAtomValue(userAtom);
+  const store = getDefaultStore();
+  const token = store.get(tokenAtom);
+
+  const [suppliers, setSuppliers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null); 
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
+
+  // New state for the debounced search term
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
+
+  // States for delete confirmation modal
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [supplierToDelete, setSupplierToDelete] = useState(null);
+
+  const loadSuppliers = async (currentSearchTerm) => {
+    if (!token) {
+      setLoading(false);
+      return; // Exit if no token, user is not authenticated
+    }
+
+    try {
+      setLoading(true);
+      setError(null); // Clear previous errors on new load attempt
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString(),
+        search: currentSearchTerm,
+      }).toString();
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/suppliers?${params}`, {
+        headers: {
+          Authorization: `Bearer ${token}`, // Pass token in headers
+        },
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        // Handle 401 Unauthorized specifically
+        if (res.status === 401) {
+          store.set(tokenAtom, null);
+          store.set(userAtom, null);
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          toast.error("Session expired, please log in again.");
+          window.location.href = "/login"; // Redirect to login page
+          return;
+        }
+        throw new Error(data.error || "Failed to fetch suppliers");
+      }
+
+      setSuppliers(data.suppliers);
+      setTotalItems(data.total);
+    } catch (err) {
+      console.error("Failed to load suppliers", err);
+      setError(err.message || "An unexpected error occurred while loading suppliers.");
+      toast.error(err.message || "Failed to load suppliers."); // Show toast notification
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Effect for debouncing the search term
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500); // Debounce delay: 500ms
+
+    // Cleanup function: This will clear the timeout if searchTerm changes before 500ms
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchTerm]);
+
+  useEffect(() => {
+    // Only fetch if router is ready and user/token data is available
+    if (restaurantUsername && token) {
+      loadSuppliers(debouncedSearchTerm);
+    }
+  }, [currentPage, debouncedSearchTerm, restaurantUsername, token]); 
+
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+  const handleEdit = (supplier) => {
+    // Navigate to the edit page for the specific supplier
+    if (user && user.restaurantUsername) {
+      router.push(`/${user.restaurantUsername}/dashboard/supplier-management/edit/${supplier._id}`);
+    } else {
+      toast.error("Restaurant username not found. Cannot navigate to edit page.");
+    }
+  };
+
+  const handleDeleteConfirm = (supplier) => {
+    setSupplierToDelete(supplier);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteSupplier = async () => {
+    if (!supplierToDelete) return;
+
+    try {
+      setLoading(true); // Indicate loading while deleting
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/suppliers/${supplierToDelete._id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (res.status === 401) {
+          store.set(tokenAtom, null);
+          store.set(userAtom, null);
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          toast.error("Session expired, please log in again.");
+          window.location.href = "/login";
+          return;
+        }
+        throw new Error(data.error || "Failed to delete supplier");
+      }
+
+      toast.success(`✅ Supplier "${supplierToDelete.name}" deleted successfully!`, {
+        position: "top-center",
+        autoClose: 3000,
+      });
+      // Reload suppliers list after successful deletion, staying on the same page
+      await loadSuppliers(debouncedSearchTerm);
+    } catch (err) {
+      console.error("Delete failed:", err);
+      setError(err.message || "An unexpected error occurred during deletion.");
+      toast.error(err.message || "Failed to delete supplier.");
+    } finally {
+      setShowDeleteModal(false); // Close modal regardless of success/failure
+      setSupplierToDelete(null); // Clear supplier to delete
+      setLoading(false); // Reset loading state
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
+    setSupplierToDelete(null);
+  };
 
   return (
     <DashboardLayout>
       <ManagerOnly>
-        <div style={{ padding: "1rem" }}>
-          <h1
-            style={{
-              color: "#FFF",
-              marginBottom: "2rem",
-              display: "flex",
-              alignItems: "center",
-              gap: "1rem",
-            }}
-          >
-            <FiCheckCircle style={{ color: "#FF9800" }} />
-            Supplier Management
-          </h1>
+        <h1>🤝 Supplier Management</h1>
 
-          {/* Coming Soon Card */}
-          <Card
-            style={{ backgroundColor: "#1E1E2F", border: "2px solid #FF9800", textAlign: "center" }}
-          >
-            <Card.Body style={{ padding: "4rem 2rem" }}>
-              <div style={{ fontSize: "4rem", marginBottom: "2rem" }}>
-                <FiClock style={{ color: "#FF9800" }} />
-              </div>
+        {/* Loading indicator */}
+        {loading && <p style={{ textAlign: "center", color: "#FFF" }}>Loading suppliers…</p>}
+        {/* Error display */}
+        {error && <p style={{ textAlign: "center", color: "#E53935" }}>Error: {error}</p>}
 
-              <h2 style={{ color: "#FFF", marginBottom: "1rem" }}>Coming Soon!</h2>
-
-              <p
+        {/* Render content only when not loading OR if loading has finished at least once and there are suppliers */}
+        {(!loading || suppliers.length > 0) && (
+          <>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                marginBottom: "1rem",
+                paddingRight: "1rem",
+              }}
+            >
+              <Button
+                onClick={() =>
+                  router.push(
+                    `/${restaurantUsername}/dashboard/supplier-management/create`
+                  )
+                }
                 style={{
-                  color: "#CCC",
-                  fontSize: "1.1rem",
-                  marginBottom: "2rem",
-                  maxWidth: "600px",
-                  margin: "0 auto 2rem",
+                  backgroundColor: "#388E3C",
+                  color: "#FFF",
+                  border: "none",
+                  padding: "0.5rem 1.25rem",
+                  borderRadius: 4,
+                  fontSize: "1rem",
+                  fontWeight: 700,
+                  cursor: "pointer",
                 }}
               >
-                Supplier management features are under development. Stay tuned for updates on how
-                you can manage your suppliers effectively.
-              </p>
+                
+                Add New Supplier +
+                
+              </Button>
+            </div>
 
-              {/* Feature Preview */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                marginBottom: "1rem",
+                padding: "0 1rem",
+              }}
+            >
+              <FontAwesomeIcon icon={faSearch} style={{ marginRight: "0.5rem", color: "#FFF" }} />
+              <input
+                type="text"
+                placeholder="Search suppliers by name, contact, or email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{
+                  flex: 1,
+                  padding: "0.5rem 1rem",
+                  borderRadius: 4,
+                  border: "1px solid #3A3A4A",
+                  backgroundColor: "#2A2A3A",
+                  color: "#FFF",
+                  width: "100%",
+                }}
+              />
+            </div>
+
+            <SupplierTable
+              suppliers={suppliers}
+              onEdit={handleEdit}
+              onDelete={handleDeleteConfirm}
+            />
+
+            {/* Pagination controls */}
+            {totalPages > 1 && (
               <div
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-                  gap: "1.5rem",
-                  marginBottom: "2rem",
-                  textAlign: "left",
+                  display: "flex",
+                  justifyContent: "center",
+                  marginTop: "1rem",
                 }}
               >
-                <div
-                  style={{
-                    backgroundColor: "#252538",
-                    padding: "1.5rem",
-                    borderRadius: "8px",
-                    border: "1px solid #3A3A4A",
-                  }}
-                >
-                  <div style={{ color: "#4CAF50", fontSize: "1.5rem", marginBottom: "1rem" }}>
-                    <FiTarget />
-                  </div>
-                  <h5 style={{ color: "#FFF", marginBottom: "0.5rem" }}>Order History & Trends</h5>
-                  <p style={{ color: "#CCC", fontSize: "0.9rem", margin: 0 }}>
-                    Analyze supplier order frequency, costs, and trends to make informed decisions.
-                  </p>
-                </div>
-
-                <div
-                  style={{
-                    backgroundColor: "#252538",
-                    padding: "1.5rem",
-                    borderRadius: "8px",
-                    border: "1px solid #3A3A4A",
-                  }}
-                >
-                  <div style={{ color: "#2196F3", fontSize: "1.5rem", marginBottom: "1rem" }}>
-                    <FiTrendingUp />
-                  </div>
-                  <h5 style={{ color: "#FFF", marginBottom: "0.5rem" }}>Delivery Issue Tracking</h5>
-                  <p style={{ color: "#CCC", fontSize: "0.9rem", margin: 0 }}>
-                    Log late deliveries or quality issues to monitor supplier performance.
-                  </p>
-                </div>
-
-                <div
-                  style={{
-                    backgroundColor: "#252538",
-                    padding: "1.5rem",
-                    borderRadius: "8px",
-                    border: "1px solid #3A3A4A",
-                  }}
-                >
-                  <div style={{ color: "#FF4444", fontSize: "1.5rem", marginBottom: "1rem" }}>
-                    <FiAlertTriangle />
-                  </div>
-                  <h5 style={{ color: "#FFF", marginBottom: "0.5rem" }}>Procurement Workflow</h5>
-                  <p style={{ color: "#CCC", fontSize: "0.9rem", margin: 0 }}>
-                    Streamline purchase requests, approvals, and order placements from a single
-                    dashboard.
-                  </p>
-                </div>
-
-                <div
-                  style={{
-                    backgroundColor: "#252538",
-                    padding: "1.5rem",
-                    borderRadius: "8px",
-                    border: "1px solid #3A3A4A",
-                  }}
-                >
-                  <div style={{ color: "#9C27B0", fontSize: "1.5rem", marginBottom: "1rem" }}>
-                    <FiActivity />
-                  </div>
-                  <h5 style={{ color: "#FFF", marginBottom: "0.5rem" }}>Kitchen Efficiency</h5>
-                  <p style={{ color: "#CCC", fontSize: "0.9rem", margin: 0 }}>
-                    Analyze kitchen performance and staff efficiency metrics
-                  </p>
-                </div>
+                {Array.from({ length: totalPages }, (_, i) => (
+                  <button
+                    key={i + 1}
+                    onClick={() => setCurrentPage(i + 1)}
+                    style={{
+                      backgroundColor: currentPage === i + 1 ? "#388E3C" : "#2A2A3A",
+                      color: "#FFF",
+                      border: "none",
+                      padding: "0.5rem 1rem",
+                      margin: "0 0.25rem",
+                      borderRadius: 4,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
               </div>
+            )}
+          </>
+        )}
 
-              <Button
-                onClick={() => router.push(`/${restaurantUsername}/dashboard/sales-analytics`)}
-                style={{
-                  backgroundColor: "#FF9800",
-                  borderColor: "#FF9800",
-                  padding: "0.75rem 2rem",
-                  fontSize: "1.1rem",
-                  fontWeight: 600,
-                }}
-              >
-                Back to Analytics Dashboard
-              </Button>
-            </Card.Body>
-          </Card>
-        </div>
+        {/* Delete Confirmation Modal */}
+        <Modal show={showDeleteModal} onHide={handleCancelDelete} centered>
+          <Modal.Header closeButton className="bg-dark text-light border-bottom-0">
+            <Modal.Title>Confirm Deletion</Modal.Title>
+          </Modal.Header>
+          <Modal.Body className="bg-dark text-light">
+            <p>
+              Are you sure you want to permanently delete supplier "
+              <strong>{supplierToDelete?.name}</strong>"? This action cannot be undone.
+            </p>
+          </Modal.Body>
+          <Modal.Footer className="bg-dark border-top-0">
+            <Button variant="secondary" onClick={handleCancelDelete}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handleDeleteSupplier}>
+              Confirm
+            </Button>
+          </Modal.Footer>
+        </Modal>
       </ManagerOnly>
     </DashboardLayout>
   );

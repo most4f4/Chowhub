@@ -21,6 +21,8 @@ import {
   FiHash,
   FiMapPin,
   FiEdit2,
+  FiBell,
+  FiSettings,
 } from "react-icons/fi";
 import { Form, Button } from "react-bootstrap";
 import { toast } from "react-toastify";
@@ -33,6 +35,8 @@ const NAV_ITEMS = [
   { label: "Suppliers", icon: <FiUsers />, path: "supplier-management", managerOnly: true },
   { label: "Sales & Analytics", icon: <FiBarChart2 />, path: "sales-analytics", managerOnly: true },
   { label: "Users", icon: <FiUserCheck />, path: "user-management", managerOnly: true },
+  { label: "Settings", icon: <FiSettings />, path: "restaurant-settings", managerOnly: true },
+  { label: "Notifications", icon: <FiBell />, path: "notification-history" },
 ];
 
 export default function DashboardLayout({ children }) {
@@ -283,7 +287,8 @@ export default function DashboardLayout({ children }) {
         >
           <DashboardHeader />
 
-          {router.pathname.endsWith("/dashboard") && restaurant && (
+          {/* Settings dashboard commented out and moved to settings page */}
+          {/* {router.pathname.endsWith("/dashboard") && restaurant && (
             <div
               style={{
                 backgroundColor: "#1E1E2F",
@@ -361,58 +366,7 @@ export default function DashboardLayout({ children }) {
                 Cancel
               </Button>
             </Form>
-          )}
-
-          {router.pathname.endsWith("/dashboard") && isManager && (
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "2rem", marginTop: "2rem" }}
-            >
-              <div>
-                <h5>🧂 Ingredients</h5>
-                <div
-                  style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginTop: "0.5rem" }}
-                >
-                  <SummaryCard
-                    label="Total Ingredients"
-                    value={ingredientTotals.totalIngredients}
-                    color="#009688"
-                  />
-                  <SummaryCard
-                    label="Low Stock"
-                    value={ingredientTotals.lowStock}
-                    color="#FF8C00"
-                  />
-                  <SummaryCard
-                    label="Critical Stock"
-                    value={ingredientTotals.criticalStock}
-                    color="#E53935"
-                  />
-                </div>
-              </div>
-              <div>
-                <h5>🍔 Menu Items</h5>
-                <div
-                  style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginTop: "0.5rem" }}
-                >
-                  <SummaryCard label="Total Menu Items" value={menuItems.length} color="#4CAF50" />
-                </div>
-              </div>
-              <div>
-                <h5>👥 Users</h5>
-                <div
-                  style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginTop: "0.5rem" }}
-                >
-                  <SummaryCard label="Total Users" value={userStats.total} color="#FF8C00" />
-                  <SummaryCard label="Active Users" value={userStats.active} color="#4CAF50" />
-                  <SummaryCard
-                    label="Inactive Users"
-                    value={userStats.deactivated}
-                    color="#E53935"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
+          )} */}
 
           {children}
         </div>
