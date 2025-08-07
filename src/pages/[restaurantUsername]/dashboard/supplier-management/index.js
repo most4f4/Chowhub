@@ -5,14 +5,13 @@ import { useRouter } from "next/router";
 import DashboardLayout from "@/components/DashboardLayout";
 import { ManagerOnly } from "@/components/Protected";
 import SupplierTable from "@/components/SupplierTable";
-import { apiFetch } from "@/lib/api"; 
-import { Modal, Button, Form, InputGroup, Row, Col } from "react-bootstrap"; 
+import { apiFetch } from "@/lib/api";
+import { Modal, Button, Form, InputGroup, Row, Col } from "react-bootstrap";
 import { toast } from "react-toastify";
-import { useAtomValue, getDefaultStore } from "jotai"; 
-import { userAtom, tokenAtom } from "@/store/atoms"; 
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"; 
-import { faSearch, faPlus } from "@fortawesome/free-solid-svg-icons"; 
-
+import { useAtomValue, getDefaultStore } from "jotai";
+import { userAtom, tokenAtom } from "@/store/atoms";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faSearch, faPlus } from "@fortawesome/free-solid-svg-icons";
 
 export default function SupplierManagementPage() {
   const router = useRouter();
@@ -25,7 +24,7 @@ export default function SupplierManagementPage() {
 
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null); 
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
@@ -103,7 +102,7 @@ export default function SupplierManagementPage() {
     if (restaurantUsername && token) {
       loadSuppliers(debouncedSearchTerm);
     }
-  }, [currentPage, debouncedSearchTerm, restaurantUsername, token]); 
+  }, [currentPage, debouncedSearchTerm, restaurantUsername, token]);
 
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
@@ -126,12 +125,15 @@ export default function SupplierManagementPage() {
 
     try {
       setLoading(true); // Indicate loading while deleting
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/suppliers/${supplierToDelete._id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/suppliers/${supplierToDelete._id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
+      );
 
       const data = await res.json();
 
@@ -193,9 +195,7 @@ export default function SupplierManagementPage() {
             >
               <Button
                 onClick={() =>
-                  router.push(
-                    `/${restaurantUsername}/dashboard/supplier-management/create`
-                  )
+                  router.push(`/${restaurantUsername}/dashboard/supplier-management/create`)
                 }
                 style={{
                   backgroundColor: "#388E3C",
@@ -208,9 +208,7 @@ export default function SupplierManagementPage() {
                   cursor: "pointer",
                 }}
               >
-                
                 Add New Supplier +
-                
               </Button>
             </div>
 
@@ -284,8 +282,8 @@ export default function SupplierManagementPage() {
           </Modal.Header>
           <Modal.Body className="bg-dark text-light">
             <p>
-              Are you sure you want to permanently delete supplier "
-              <strong>{supplierToDelete?.name}</strong>"? This action cannot be undone.
+              Are you sure you want to permanently delete supplier &quot;
+              <strong>{supplierToDelete?.name}</strong>&quot;? This action cannot be undone.
             </p>
           </Modal.Body>
           <Modal.Footer className="bg-dark border-top-0">
