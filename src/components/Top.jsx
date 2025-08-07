@@ -1,6 +1,6 @@
 import Image from "next/image";
-import { Container, Row, Col } from "react-bootstrap";
-import styles from "./top.module.css"; // customize this file
+import { Container } from "react-bootstrap";
+import styles from "./top.module.css";
 import Link from "next/link";
 
 export default function Header() {
@@ -24,11 +24,21 @@ export default function Header() {
             Contact Us
           </a>
         </nav>
-        <Link href="/login">
-          <button type="button" className={`btn btn-success ${styles.Btn}`}>
-            Login
-          </button>
-        </Link>
+
+        {/* Right: Register and Login Buttons */}
+        <div className="d-flex align-items-center gap-3">
+          <Link href="/create-restaurant">
+            <button type="button" className={`btn btn-success ${styles.Btn}`}>
+              Register
+            </button>
+          </Link>
+
+          <Link href="/login">
+            <button type="button" className={styles.loginBtn}>
+              Login
+            </button>
+          </Link>
+        </div>
       </Container>
     </header>
   );

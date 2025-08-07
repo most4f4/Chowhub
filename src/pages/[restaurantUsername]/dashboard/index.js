@@ -638,7 +638,7 @@ export default function OverviewPage() {
                   }}
                 >
                   <h3 style={{ margin: "0 0 1rem", fontSize: "1rem", color: "#FFF" }}>
-                    Staff Performance
+                    Staff Performance This Week
                   </h3>
                   {data?.managerData?.staffPerformanceChart?.length > 0 ? (
                     <div style={{ height: "250px" }}>
@@ -701,7 +701,7 @@ export default function OverviewPage() {
                   }}
                 >
                   <h3 style={{ margin: "0 0 1rem", fontSize: "1rem", color: "#FFF" }}>
-                    Top Menu Items
+                    Top Menu Items (Last 7 Days - by Quantity)
                   </h3>
                   {data?.managerData?.menuPerformanceChart?.length > 0 ? (
                     <div style={{ height: "250px" }}>

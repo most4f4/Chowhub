@@ -1,4 +1,6 @@
-import { useState } from "react";
+// src/pages/[restaurantUsername]/dashboard/supplier-management/create/index.js
+
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import DashboardLayout from "@/components/DashboardLayout";
 import { ManagerOnly } from "@/components/Protected";
@@ -18,9 +20,29 @@ export default function CreateSupplierPage() {
     email: "",
     address: "",
     notes: "",
+    ingredients: [],
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [allIngredients, setAllIngredients] = useState([]);
+
+  useEffect(() => {
+    const fetchIngredients = async () => {
+      try {
+        // Fetch all ingredients
+        const { ingredients } = await apiFetch("/ingredients?limit=1000");
+
+        if (!ingredients) {
+          throw new Error("API response is missing 'ingredients' array.");
+        }
+        setAllIngredients(ingredients);
+      } catch (err) {
+        console.error("Failed to fetch ingredients:", err);
+        toast.error("Failed to load ingredients. Please try again.");
+      }
+    };
+    fetchIngredients();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -28,6 +50,13 @@ export default function CreateSupplierPage() {
       ...prevData,
       [name]: value,
     }));
+  };
+
+  const handleIngredientsChange = (e) => {
+    const selectedOptions = Array.from(e.target.options)
+      .filter((option) => option.selected)
+      .map((option) => option.value);
+    setFormData({ ...formData, ingredients: selectedOptions });
   };
 
   const handleSubmit = async (e) => {
@@ -41,7 +70,6 @@ export default function CreateSupplierPage() {
       return;
     }
 
-    // Email validation using a simple regex
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (formData.email && !emailRegex.test(formData.email)) {
       setError("Please enter a valid email address.");
@@ -72,6 +100,7 @@ export default function CreateSupplierPage() {
           email: "",
           address: "",
           notes: "",
+          ingredients: [],
         });
         router.push(`/${restaurantUsername}/dashboard/supplier-management`);
       }
@@ -92,7 +121,7 @@ export default function CreateSupplierPage() {
           <Form className={styles.formWrapper} onSubmit={handleSubmit}>
             {error && <p className="text-danger">{error}</p>}
 
-            {/* Name */}
+            {/* Supplier Name */}
             <Form.Group className="mb-3" controlId="formSupplierName">
               <Form.Label>Supplier Name *</Form.Label>
               <Form.Control
@@ -173,6 +202,27 @@ export default function CreateSupplierPage() {
                 rows="3"
                 className={styles.supplierLabel}
               />
+            </Form.Group>
+
+            {/* Ingredients Selection */}
+            <Form.Group className="mb-3" controlId="formIngredients">
+              <Form.Label>Supplied Ingredients</Form.Label>
+              <Form.Select
+                multiple
+                name="ingredients"
+                value={formData.ingredients}
+                onChange={handleIngredientsChange}
+                className={styles.supplierLabel}
+              >
+                {allIngredients && allIngredients.map((ingredient) => (
+                  <option key={ingredient._id} value={ingredient._id}>
+                    {ingredient.name}
+                  </option>
+                ))}
+              </Form.Select>
+              <Form.Text style={{ color: "#ccc" }}>
+                Hold down the `Ctrl` (Windows) or `Cmd` (Mac) key to select multiple ingredients.
+              </Form.Text>
             </Form.Group>
 
             {/* Submit Button */}

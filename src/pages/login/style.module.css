@@ -1,0 +1,4 @@
+.loginInput::placeholder {
+  color: #adb5bd !important; /* Lighter gray */
+  opacity: 0.7; /* Make it even lighter */
+}

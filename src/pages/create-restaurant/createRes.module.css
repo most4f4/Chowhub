@@ -14,3 +14,9 @@
   height: 45px;
   font-size: 1rem;
 }
+
+/* Enhanced login/registration input styling */
+.loginInput::placeholder {
+  color: #adb5bd !important; /* Lighter gray */
+  opacity: 0.7; /* Make it even lighter */
+}

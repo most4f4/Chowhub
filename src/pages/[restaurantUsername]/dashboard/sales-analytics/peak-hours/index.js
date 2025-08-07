@@ -904,8 +904,8 @@ export default function PeakHourAnalysis() {
                             <div
                               style={{ color: "#CCC", fontSize: "0.9rem", marginBottom: "0.5rem" }}
                             >
-                              Current: {rec.currentStaff} staff • Recommended:{" "}
-                              {rec.recommendedStaff} staff • Avg: {rec.avgOrders} orders
+                              Recommended: {rec.recommendedStaff} staff • Avg: {rec.avgOrders}{" "}
+                              orders
                             </div>
                             <p style={{ margin: 0, color: "#AAA", fontSize: "0.85rem" }}>
                               {rec.recommendation}
