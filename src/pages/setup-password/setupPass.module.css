@@ -14,3 +14,9 @@
   font-weight: 500;
   height: 45px;
 }
+
+/* Enhanced login/registration input styling */
+.loginInput::placeholder {
+  color: #adb5bd !important; /* Lighter gray */
+  opacity: 0.7; /* Make it even lighter */
+}
