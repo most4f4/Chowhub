@@ -232,8 +232,16 @@ export default function OverviewPage() {
   const salesTrendData = data?.managerData?.dailyTrend
     ? {
         labels: data.managerData.dailyTrend.map((day) => {
-          const date = new Date(day.date);
-          return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+          // Parse the date string directly (it's already in YYYY-MM-DD format)
+          const [year, month, dayNum] = day.date.split("-");
+          const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(dayNum));
+
+          // Format to show month and day
+          return date.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            timeZone: "America/Toronto", // Ensure consistent timezone
+          });
         }),
         datasets: [
           {
