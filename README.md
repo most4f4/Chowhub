@@ -199,6 +199,92 @@ The application is fully deployed and accessible through any modern web browser.
 
 This frontend requires a backend API. Make sure your backend server is running on the configured API URL (default: `http://localhost:8080/api`). Backend repository: https://github.com/most4f4/Chowhub_Backend.
 
+## 📷 Sample Screenshots
+
+**Management Dashboard - Overview Page**
+
+<div align="center">
+<img src="screenshots/img1.png" alt="Overview Page" width="800">
+</div>
+
+**Regular Staff Dashboard - Overview Page**
+
+<div align="center">
+<img src="screenshots/img14.png" alt="Staff Overview Page - Mobile Screen Version" width="800">
+</div>
+
+**Management Dashboard - Create Ordering Page**
+
+<div align="center">
+<img src="screenshots/img2.png" alt="Create Ordering Page" width="800">
+</div>
+
+**Management Dashboard - Ingredient Management Page**
+
+<div align="center">
+<img src="screenshots/img3.png" alt="Ingredient Management Page" width="800">
+</div>
+
+**Management Dashboard - Sales & Analytics Page**
+
+<div align="center">
+<img src="screenshots/img4.png" alt="Sales & Analytics Page" width="800">
+</div>
+
+**Management Dashboard - Staff Performance Analysis Page**
+
+<div align="center">
+<img src="screenshots/img5.png" alt="Staff Performance Page" width="800">
+</div>
+
+**Management Dashboard - Staff Performance Analysis Page**
+
+<div align="center">
+<img src="screenshots/img6.png" alt="Staff Performance Page" width="800">
+</div>
+
+**Management Dashboard - Peak Hour Analysis Page**
+
+<div align="center">
+<img src="screenshots/img7.png" alt="Peak Hour Analysis Page" width="800">
+</div>
+
+**Management Dashboard - Menu Performance Analysis Page**
+
+<div align="center">
+<img src="screenshots/img8.png" alt="Menu Performance Page" width="800">
+</div>
+
+**Management Dashboard - AI Insights**
+
+<div align="center">
+<img src="screenshots/img9.png" alt="AI Insights Page" width="800">
+</div>
+
+**Management Dashboard - Menu Management Page**
+
+<div align="center">
+<img src="screenshots/img10.png" alt="Menu Management Page" width="800">
+</div>
+
+**Management Dashboard - User Management Page**
+
+<div align="center">
+<img src="screenshots/img11.png" alt="User Management Page" width="800">
+</div>
+
+**Management Dashboard - Notification Management Page**
+
+<div align="center">
+<img src="screenshots/img12.png" alt="Notification Management Page" width="800">
+</div>
+
+**Management Dashboard - Overview Page - Mobile Screen Version**
+
+<div align="center">
+<img src="screenshots/img13.png" alt="Overview Page - Mobile Screen Version" width="250">
+</div>
+
 ## 📁 Project Structure
 
 ```
